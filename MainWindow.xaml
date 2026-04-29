@@ -29,56 +29,18 @@
                                FontWeight="Bold"
                                Margin="0,20,0,35"/>
 
-                    <Button Content="Главная"
-                            Height="46"
-                            Background="#FF6A2A"
-                            Foreground="White"
-                            FontWeight="Bold"
-                            BorderThickness="0"
-                            Margin="0,0,0,10"/>
-
-                    <Button Content="Установить APK"
-                            Height="46"
-                            Background="#1A2430"
-                            Foreground="#C8D0DA"
-                            BorderThickness="0"
-                            Margin="0,0,0,10"/>
-
-                    <Button Content="Приложения"
-                            Height="46"
-                            Background="#1A2430"
-                            Foreground="#C8D0DA"
-                            BorderThickness="0"
-                            Margin="0,0,0,10"/>
-
-                    <Button Content="Запуск Activity"
-                            Height="46"
-                            Background="#1A2430"
-                            Foreground="#C8D0DA"
-                            BorderThickness="0"
-                            Margin="0,0,0,10"/>
-
-                    <Button Content="Терминал ADB"
-                            Height="46"
-                            Background="#1A2430"
-                            Foreground="#C8D0DA"
-                            BorderThickness="0"/>
+                    <Button Content="Главная" Height="46" Background="#FF6A2A" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,0,10"/>
+                    <Button Content="Установить APK" Height="46" Background="#1A2430" Foreground="#C8D0DA" BorderThickness="0" Margin="0,0,0,10"/>
+                    <Button Content="Приложения" Height="46" Background="#1A2430" Foreground="#C8D0DA" BorderThickness="0" Margin="0,0,0,10"/>
+                    <Button Content="Запуск Activity" Height="46" Background="#1A2430" Foreground="#C8D0DA" BorderThickness="0" Margin="0,0,0,10"/>
+                    <Button Content="Терминал ADB" Height="46" Background="#1A2430" Foreground="#C8D0DA" BorderThickness="0"/>
                 </StackPanel>
 
-                <Border Grid.Row="2"
-                        Background="#17212D"
-                        CornerRadius="14"
-                        Padding="16"
-                        Margin="0,0,0,10">
+                <Border Grid.Row="2" Background="#17212D" CornerRadius="14" Padding="16" Margin="0,0,0,10">
                     <StackPanel>
-                        <TextBlock Text="● Статус ADB"
-                                   Foreground="#4ADE80"
-                                   FontWeight="Bold"/>
-                        <TextBlock Text="Ожидание подключения"
-                                   Foreground="#C8D0DA"
-                                   Margin="0,10,0,0"/>
-                        <TextBlock Text="USB / ADB"
-                                   Foreground="#7D8793"/>
+                        <TextBlock Text="● Статус ADB" Foreground="#4ADE80" FontWeight="Bold"/>
+                        <TextBlock Text="Ожидание подключения" Foreground="#C8D0DA" Margin="0,10,0,0"/>
+                        <TextBlock Text="USB / ADB" Foreground="#7D8793"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -127,28 +89,31 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="✓ Устройство"
+                        <TextBlock Name="DeviceStatusText"
+                                   Text="✓ Устройство"
                                    Foreground="#4ADE80"
                                    FontSize="24"
                                    FontWeight="Bold"/>
-                        <TextBlock Text="Проверь подключение через ADB"
+
+                        <TextBlock Name="DeviceSubStatusText"
+                                   Text="Проверь подключение через ADB"
                                    Foreground="#AAB4C0"
                                    FontSize="16"
                                    Margin="0,12,0,0"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1">
-                        <TextBlock Text="Модель:"
-                                   Foreground="#7D8793"/>
-                        <TextBlock Text="Zeekr / Android"
+                        <TextBlock Text="Модель:" Foreground="#7D8793"/>
+                        <TextBlock Name="DeviceModelText"
+                                   Text="Не определено"
                                    Foreground="White"
                                    FontSize="16"
                                    FontWeight="Bold"
                                    Margin="0,8,0,18"/>
 
-                        <TextBlock Text="Android:"
-                                   Foreground="#7D8793"/>
-                        <TextBlock Text="Auto-detect"
+                        <TextBlock Text="Android:" Foreground="#7D8793"/>
+                        <TextBlock Name="AndroidVersionText"
+                                   Text="Не определено"
                                    Foreground="White"
                                    FontSize="16"
                                    FontWeight="Bold"
@@ -156,17 +121,17 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="CPU ABI:"
-                                   Foreground="#7D8793"/>
-                        <TextBlock Text="armeabi-v7a / arm64"
+                        <TextBlock Text="CPU ABI:" Foreground="#7D8793"/>
+                        <TextBlock Name="CpuAbiText"
+                                   Text="Не определено"
                                    Foreground="White"
                                    FontSize="16"
                                    FontWeight="Bold"
                                    Margin="0,8,0,18"/>
 
-                        <TextBlock Text="Статус:"
-                                   Foreground="#7D8793"/>
-                        <TextBlock Text="Ожидание"
+                        <TextBlock Text="Статус:" Foreground="#7D8793"/>
+                        <TextBlock Name="AdbStatusText"
+                                   Text="Ожидание"
                                    Foreground="White"
                                    FontSize="16"
                                    FontWeight="Bold"
@@ -184,43 +149,21 @@
                     <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0"
-                        Content="Выбрать APK"
-                        Click="SelectApk_Click"
-                        Background="#131A22"
-                        Foreground="White"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        BorderBrush="#243140"
-                        Margin="0,0,12,0"/>
+                <Button Grid.Column="0" Content="Выбрать APK" Click="SelectApk_Click"
+                        Background="#131A22" Foreground="White" FontSize="16" FontWeight="Bold"
+                        BorderBrush="#243140" Margin="0,0,12,0"/>
 
-                <Button Grid.Column="1"
-                        Content="Установить APK"
-                        Click="InstallApk_Click"
-                        Background="#131A22"
-                        Foreground="White"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        BorderBrush="#243140"
-                        Margin="12,0,12,0"/>
+                <Button Grid.Column="1" Content="Установить APK" Click="InstallApk_Click"
+                        Background="#131A22" Foreground="White" FontSize="16" FontWeight="Bold"
+                        BorderBrush="#243140" Margin="12,0,12,0"/>
 
-                <Button Grid.Column="2"
-                        Content="Список приложений"
-                        Background="#131A22"
-                        Foreground="White"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        BorderBrush="#243140"
-                        Margin="12,0,12,0"/>
+                <Button Grid.Column="2" Content="Список приложений"
+                        Background="#131A22" Foreground="White" FontSize="16" FontWeight="Bold"
+                        BorderBrush="#243140" Margin="12,0,12,0"/>
 
-                <Button Grid.Column="3"
-                        Content="Activity"
-                        Background="#131A22"
-                        Foreground="White"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        BorderBrush="#243140"
-                        Margin="12,0,0,0"/>
+                <Button Grid.Column="3" Content="Activity"
+                        Background="#131A22" Foreground="White" FontSize="16" FontWeight="Bold"
+                        BorderBrush="#243140" Margin="12,0,0,0"/>
             </Grid>
 
             <!-- НИЗ -->
@@ -282,32 +225,10 @@
                                    FontWeight="Bold"
                                    Margin="0,0,0,18"/>
 
-                        <Button Content="Перезагрузить устройство"
-                                Height="42"
-                                Background="#202A36"
-                                Foreground="White"
-                                BorderThickness="0"
-                                Margin="0,0,0,10"/>
-
-                        <Button Content="Сделать скриншот"
-                                Height="42"
-                                Background="#202A36"
-                                Foreground="White"
-                                BorderThickness="0"
-                                Margin="0,0,0,10"/>
-
-                        <Button Content="Очистить лог"
-                                Height="42"
-                                Background="#202A36"
-                                Foreground="White"
-                                BorderThickness="0"
-                                Margin="0,0,0,10"/>
-
-                        <Button Content="Открыть Activity Launcher"
-                                Height="42"
-                                Background="#202A36"
-                                Foreground="White"
-                                BorderThickness="0"/>
+                        <Button Content="Перезагрузить устройство" Height="42" Background="#202A36" Foreground="White" BorderThickness="0" Margin="0,0,0,10"/>
+                        <Button Content="Сделать скриншот" Height="42" Background="#202A36" Foreground="White" BorderThickness="0" Margin="0,0,0,10"/>
+                        <Button Content="Очистить лог" Height="42" Background="#202A36" Foreground="White" BorderThickness="0" Margin="0,0,0,10"/>
+                        <Button Content="Открыть Activity Launcher" Height="42" Background="#202A36" Foreground="White" BorderThickness="0"/>
                     </StackPanel>
                 </Border>
             </Grid>
