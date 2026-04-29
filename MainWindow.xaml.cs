@@ -15,6 +15,17 @@ namespace ZeekrTool
             InitializeComponent();
         }
 
+        private string GetAdbPath()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string adbPath = Path.Combine(baseDir, "adb", "adb.exe");
+
+            if (File.Exists(adbPath))
+                return adbPath;
+
+            return "adb";
+        }
+
         private void Log(string text)
         {
             LogBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}{Environment.NewLine}");
@@ -24,7 +35,7 @@ namespace ZeekrTool
         private void CheckAdb_Click(object sender, RoutedEventArgs e)
         {
             Log("Проверка ADB...");
-            RunCommand("adb", "devices");
+            RunCommand(GetAdbPath(), "devices");
         }
 
         private void SelectApk_Click(object sender, RoutedEventArgs e)
@@ -57,7 +68,7 @@ namespace ZeekrTool
             }
 
             Log("Установка APK...");
-            RunCommand("adb", $"install -r \"{selectedApk}\"");
+            RunCommand(GetAdbPath(), $"install -r \"{selectedApk}\"");
         }
 
         private void RunCommand(string file, string args)
