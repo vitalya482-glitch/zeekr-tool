@@ -20,11 +20,7 @@ namespace ZeekrTool
         {
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string adbPath = Path.Combine(baseDir, "adb", "adb.exe");
-
-            if (File.Exists(adbPath))
-                return adbPath;
-
-            return "adb";
+            return File.Exists(adbPath) ? adbPath : "adb";
         }
 
         private void Log(string text)
@@ -43,13 +39,6 @@ namespace ZeekrTool
             Log("Проверка ADB...");
 
             string devicesOutput = RunCommandWithResult(GetAdbPath(), "devices");
-
-            if (string.IsNullOrWhiteSpace(devicesOutput))
-            {
-                SetDeviceDisconnected("ADB не ответил");
-                return;
-            }
-
             Log(devicesOutput.Trim());
 
             var deviceLine = devicesOutput
@@ -64,33 +53,68 @@ namespace ZeekrTool
             }
 
             string deviceId = deviceLine.Split('\t')[0].Trim();
+            string connectionType = deviceId.Contains(":5555") ? "Wi-Fi ADB" : "USB ADB";
 
-            string model = RunAdbShell("getprop ro.product.model").Trim();
-            string android = RunAdbShell("getprop ro.build.version.release").Trim();
-            string abi = RunAdbShell("getprop ro.product.cpu.abilist").Trim();
+            string model = GetProp("ro.product.model");
+            string brand = GetProp("ro.product.brand");
+            string manufacturer = GetProp("ro.product.manufacturer");
+            string device = GetProp("ro.product.device");
+            string hardware = GetProp("ro.hardware");
 
-            if (string.IsNullOrWhiteSpace(model))
-                model = "Android device";
+            string android = GetProp("ro.build.version.release");
+            string sdk = GetProp("ro.build.version.sdk");
+            string build = GetProp("ro.build.display.id");
 
-            if (string.IsNullOrWhiteSpace(android))
-                android = "Не определено";
+            string abi = GetProp("ro.product.cpu.abi");
+            string abiList = GetProp("ro.product.cpu.abilist");
 
-            if (string.IsNullOrWhiteSpace(abi))
-                abi = RunAdbShell("getprop ro.product.cpu.abi").Trim();
+            string screen = RunAdbShell("wm size").Trim().Replace("Physical size:", "").Trim();
+            string dpi = RunAdbShell("wm density").Trim().Replace("Physical density:", "").Trim();
 
             DeviceStatusText.Text = "✓ Устройство подключено";
             DeviceStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
 
-            DeviceSubStatusText.Text = deviceId;
-            DeviceModelText.Text = model;
-            AndroidVersionText.Text = "Android " + android;
-            CpuAbiText.Text = abi;
+            DeviceSubStatusText.Text = $"{model} / {connectionType}";
+            DeviceIdText.Text = "ID: " + deviceId;
+            ConnectionTypeText.Text = "Тип подключения: " + connectionType;
+
+            DeviceModelText.Text = string.IsNullOrWhiteSpace(model) ? device : model;
+            BrandText.Text = EmptyDash(brand);
+            ManufacturerText.Text = EmptyDash(manufacturer);
+
+            AndroidVersionText.Text = "Android " + EmptyDash(android);
+            SdkText.Text = EmptyDash(sdk);
+            BuildText.Text = EmptyDash(build);
+
+            CpuAbiText.Text = string.IsNullOrWhiteSpace(abiList) ? EmptyDash(abi) : abiList;
+            ScreenText.Text = $"{EmptyDash(screen)} / DPI {EmptyDash(dpi)}";
             AdbStatusText.Text = "ADB подключен";
 
-            Log("Устройство найдено: " + deviceId);
+            Log("Устройство найдено:");
+            Log("ID: " + deviceId);
+            Log("Тип подключения: " + connectionType);
             Log("Модель: " + model);
+            Log("Бренд: " + brand);
+            Log("Производитель: " + manufacturer);
+            Log("Device: " + device);
+            Log("Hardware: " + hardware);
             Log("Android: " + android);
+            Log("SDK: " + sdk);
+            Log("Build: " + build);
             Log("CPU ABI: " + abi);
+            Log("ABI list: " + abiList);
+            Log("Экран: " + screen);
+            Log("DPI: " + dpi);
+        }
+
+        private string EmptyDash(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
+        }
+
+        private string GetProp(string prop)
+        {
+            return RunAdbShell("getprop " + prop).Trim();
         }
 
         private void SetDeviceDisconnected(string reason)
@@ -99,9 +123,19 @@ namespace ZeekrTool
             DeviceStatusText.Foreground = System.Windows.Media.Brushes.OrangeRed;
 
             DeviceSubStatusText.Text = reason;
-            DeviceModelText.Text = "Не определено";
-            AndroidVersionText.Text = "Не определено";
-            CpuAbiText.Text = "Не определено";
+            DeviceIdText.Text = "ID: —";
+            ConnectionTypeText.Text = "Тип подключения: —";
+
+            DeviceModelText.Text = "—";
+            BrandText.Text = "—";
+            ManufacturerText.Text = "—";
+
+            AndroidVersionText.Text = "—";
+            SdkText.Text = "—";
+            BuildText.Text = "—";
+
+            CpuAbiText.Text = "—";
+            ScreenText.Text = "—";
             AdbStatusText.Text = "Нет подключения";
 
             Log(reason);
