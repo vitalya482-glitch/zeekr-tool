@@ -1,5 +1,7 @@
 <Window x:Class="ZeekrTool.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+
         Title="Zeekr Tool"
         Height="720"
         Width="1100"
