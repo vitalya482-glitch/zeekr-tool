@@ -2,236 +2,29 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Zeekr Tool"
-        Height="720"
-        Width="1100"
-        WindowStartupLocation="CenterScreen"
-        Background="#0B0F14"
+        Height="400"
+        Width="600"
+        Background="#0B0F14">
+
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        <!-- SIDEBAR -->
-        <Border Grid.Column="0" Background="#111821" Padding="24">
-            <StackPanel>
-                <TextBlock Text="ZEEKR X"
-                           Foreground="White"
-                           FontSize="34"
-                           FontWeight="Bold"
-                           Margin="0,20,0,30"/>
+        <StackPanel Margin="20">
 
-                <Button Content="Главная"
-                        Height="46"
-                        Background="#FF6A2A"
-                        Foreground="White"
-                        FontWeight="Bold"
-                        BorderThickness="0"
-                        Margin="0,0,0,10"/>
+            <TextBlock Text="Zeekr Tool"
+                       Foreground="White"
+                       FontSize="24"
+                       Margin="0,0,0,20"/>
 
-                <Button Content="Установить APK"
-                        Height="46"
-                        Background="#1A2430"
-                        Foreground="#C8D0DA"
-                        BorderThickness="0"
-                        Margin="0,0,0,10"/>
+            <Button Content="Проверить ADB"
+                    Click="CheckAdb_Click"
+                    Height="40"
+                    Margin="0,0,0,10"/>
 
-                <Button Content="Приложения"
-                        Height="46"
-                        Background="#1A2430"
-                        Foreground="#C8D0DA"
-                        BorderThickness="0"
-                        Margin="0,0,0,10"/>
+            <TextBox Name="LogBox"
+                     Height="200"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"/>
 
-                <Button Content="Запуск Activity"
-                        Height="46"
-                        Background="#1A2430"
-                        Foreground="#C8D0DA"
-                        BorderThickness="0"
-                        Margin="0,0,0,10"/>
-
-                <Button Content="Терминал ADB"
-                        Height="46"
-                        Background="#1A2430"
-                        Foreground="#C8D0DA"
-                        BorderThickness="0"
-                        Margin="0,0,0,10"/>
-
-                <Border Background="#17212D"
-                        CornerRadius="14"
-                        Padding="16"
-                        Margin="0,260,0,0">
-                    <StackPanel>
-                        <TextBlock Text="● Устройство подключено"
-                                   Foreground="#4ADE80"
-                                   FontWeight="Bold"/>
-                        <TextBlock Text="Zeekr X"
-                                   Foreground="#C8D0DA"
-                                   Margin="0,10,0,0"/>
-                        <TextBlock Text="USB / ADB"
-                                   Foreground="#7D8793"/>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </Border>
-
-        <!-- MAIN CONTENT -->
-        <Grid Grid.Column="1" Margin="30">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="170"/>
-                <RowDefinition Height="170"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- HEADER -->
-            <DockPanel Grid.Row="0" Margin="0,0,0,24">
-                <TextBlock Text="Главная панель"
-                           Foreground="White"
-                           FontSize="28"
-                           FontWeight="Bold"
-                           DockPanel.Dock="Left"/>
-
-                <Button Content="Проверить ADB"
-                        Click="CheckAdb_Click"
-                        Width="150"
-                        Height="42"
-                        Background="#202A36"
-                        Foreground="White"
-                        BorderThickness="0"
-                        DockPanel.Dock="Right"/>
-            </DockPanel>
-
-            <!-- CONNECTION CARD -->
-            <Border Grid.Row="1"
-                    Background="#131A22"
-                    CornerRadius="18"
-                    Padding="28"
-                    BorderBrush="#243140"
-                    BorderThickness="1"
-                    Margin="0,0,0,22">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="220"/>
-                        <ColumnDefinition Width="220"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="✓ Устройство подключено"
-                                   Foreground="#4ADE80"
-                                   FontSize="24"
-                                   FontWeight="Bold"/>
-                        <TextBlock Text="Zeekr X через USB / ADB"
-                                   Foreground="#AAB4C0"
-                                   FontSize="16"
-                                   Margin="0,12,0,0"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="Модель:"
-                                   Foreground="#7D8793"/>
-                        <TextBlock Text="Zeekr X"
-                                   Foreground="White"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="0,8,0,18"/>
-
-                        <TextBlock Text="Android:"
-                                   Foreground="#7D8793"/>
-                        <TextBlock Text="Android Automotive"
-                                   Foreground="White"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="0,8,0,0"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="CPU ABI:"
-                                   Foreground="#7D8793"/>
-                        <TextBlock Text="armeabi-v7a / arm64"
-                                   Foreground="White"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="0,8,0,18"/>
-
-                        <TextBlock Text="Статус:"
-                                   Foreground="#7D8793"/>
-                        <TextBlock Text="ADB готов"
-                                   Foreground="White"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="0,8,0,0"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- ACTION CARDS -->
-            <Grid Grid.Row="2" Margin="0,0,0,22">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
-                </Grid.ColumnDefinitions>
-
-                <Border Grid.Column="0" Background="#131A22" CornerRadius="18" Padding="20" Margin="0,0,12,0">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Установить APK" Foreground="White" FontSize="18" FontWeight="Bold" TextAlignment="Center"/>
-                        <TextBlock Text="Выбор и установка приложения" Foreground="#8E99A6" TextAlignment="Center" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Column="1" Background="#131A22" CornerRadius="18" Padding="20" Margin="12,0,12,0">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Приложения" Foreground="White" FontSize="18" FontWeight="Bold" TextAlignment="Center"/>
-                        <TextBlock Text="Список установленных APK" Foreground="#8E99A6" TextAlignment="Center" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Column="2" Background="#131A22" CornerRadius="18" Padding="20" Margin="12,0,12,0">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Activity" Foreground="White" FontSize="18" FontWeight="Bold" TextAlignment="Center"/>
-                        <TextBlock Text="Запуск скрытых экранов" Foreground="#8E99A6" TextAlignment="Center" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Column="3" Background="#131A22" CornerRadius="18" Padding="20" Margin="12,0,0,0">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Файлы" Foreground="White" FontSize="18" FontWeight="Bold" TextAlignment="Center"/>
-                        <TextBlock Text="Работа с файлами авто" Foreground="#8E99A6" TextAlignment="Center" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <!-- LOGS -->
-            <Border Grid.Row="3"
-                    Background="#131A22"
-                    CornerRadius="18"
-                    Padding="20"
-                    BorderBrush="#243140"
-                    BorderThickness="1">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="Лог действий"
-                               Foreground="White"
-                               FontSize="20"
-                               FontWeight="Bold"
-                               Margin="0,0,0,14"/>
-
-                    <TextBox Grid.Row="1"
-                             Name="LogBox"
-                             Background="#0B0F14"
-                             Foreground="#D6DEE8"
-                             BorderBrush="#243140"
-                             TextWrapping="Wrap"
-                             AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"/>
-                </Grid>
-            </Border>
-        </Grid>
+        </StackPanel>
     </Grid>
+
 </Window>
