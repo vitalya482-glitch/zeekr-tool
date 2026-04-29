@@ -1,19 +1,16 @@
 <Window x:Class="ZeekrTool.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-
         Title="Zeekr Tool"
         Height="720"
         Width="1100"
         WindowStartupLocation="CenterScreen"
-        Background="#0B0F14">
-
+        Background="#0B0F14"
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="260"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-
         <!-- SIDEBAR -->
         <Border Grid.Column="0" Background="#111821" Padding="24">
             <StackPanel>
