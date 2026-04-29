@@ -1,0 +1,26 @@
+name: Build Zeekr Tool
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Build
+      run: dotnet publish -c Release -r win-x64 --self-contained true
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ZeekrTool
+        path: bin/Release/net8.0-windows/win-x64/publish/
