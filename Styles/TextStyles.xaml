@@ -1,1 +1,263 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- ZEEKR_TOOL_MARKER: TEXT_STYLES_V2 -->
+    <!-- Central typography file. Future UI text changes should start here. -->
+
+    <!-- ========================= -->
+    <!-- FONT FAMILIES -->
+    <!-- ========================= -->
+
+    <FontFamily x:Key="Font.Primary">Segoe UI</FontFamily>
+    <FontFamily x:Key="Font.Secondary">Segoe UI Semibold</FontFamily>
+    <FontFamily x:Key="Font.Mono">Consolas</FontFamily>
+
+    <!-- ========================= -->
+    <!-- FONT SIZES -->
+    <!-- ========================= -->
+
+    <sys:Double x:Key="FontSize.Tiny"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">11</sys:Double>
+    <sys:Double x:Key="FontSize.Small"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">12</sys:Double>
+    <sys:Double x:Key="FontSize.Body"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">14</sys:Double>
+    <sys:Double x:Key="FontSize.BodyLarge"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">15</sys:Double>
+    <sys:Double x:Key="FontSize.Button"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">14</sys:Double>
+    <sys:Double x:Key="FontSize.Section"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">20</sys:Double>
+    <sys:Double x:Key="FontSize.Status"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">22</sys:Double>
+    <sys:Double x:Key="FontSize.PageTitle"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">28</sys:Double>
+    <sys:Double x:Key="FontSize.Logo"
+                xmlns:sys="clr-namespace:System;assembly=mscorlib">34</sys:Double>
+
+    <!-- ========================= -->
+    <!-- TEXT COLORS -->
+    <!-- ========================= -->
+
+    <SolidColorBrush x:Key="Text.Primary" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Text.Secondary" Color="#D6DEE8"/>
+    <SolidColorBrush x:Key="Text.Muted" Color="#AAB4C0"/>
+    <SolidColorBrush x:Key="Text.Subtle" Color="#8E99A6"/>
+    <SolidColorBrush x:Key="Text.Disabled" Color="#5F6B78"/>
+
+    <SolidColorBrush x:Key="Text.Success" Color="#4ADE80"/>
+    <SolidColorBrush x:Key="Text.Warning" Color="#FBBF24"/>
+    <SolidColorBrush x:Key="Text.Error" Color="#FF6A2A"/>
+    <SolidColorBrush x:Key="Text.Info" Color="#60A5FA"/>
+
+    <!-- ========================= -->
+    <!-- GLOBAL DEFAULTS -->
+    <!-- ========================= -->
+
+    <Style TargetType="Window">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Primary}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+    </Style>
+
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Primary}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+    </Style>
+
+    <Style TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Primary}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Button}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style TargetType="ComboBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Primary}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+    </Style>
+
+    <Style TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}"/>
+        <Setter Property="FontSize" Value="13"/>
+    </Style>
+
+    <Style TargetType="ListBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Primary}"/>
+        <Setter Property="FontSize" Value="13"/>
+    </Style>
+
+    <!-- ========================= -->
+    <!-- HEADINGS -->
+    <!-- ========================= -->
+
+    <Style x:Key="Text.Logo" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Logo}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <Style x:Key="Text.PageTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.PageTitle}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <Style x:Key="Text.SectionTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Section}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <Style x:Key="Text.CardTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <!-- ========================= -->
+    <!-- BODY TEXT -->
+    <!-- ========================= -->
+
+    <Style x:Key="Text.Body" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+    </Style>
+
+    <Style x:Key="Text.BodyMuted" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Muted}"/>
+    </Style>
+
+    <Style x:Key="Text.Small" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Small}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Muted}"/>
+    </Style>
+
+    <Style x:Key="Text.Tiny" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Tiny}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Subtle}"/>
+    </Style>
+
+    <!-- ========================= -->
+    <!-- LABELS / VALUES -->
+    <!-- ========================= -->
+
+    <Style x:Key="Text.Label" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Subtle}"/>
+    </Style>
+
+    <Style x:Key="Text.Value" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <Style x:Key="Text.ValueLarge" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.BodyLarge}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <Style x:Key="Text.CodeValue" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+    </Style>
+
+    <!-- ========================= -->
+    <!-- STATUSES -->
+    <!-- ========================= -->
+
+    <Style x:Key="Text.StatusSuccess" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Status}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Success}"/>
+    </Style>
+
+    <Style x:Key="Text.StatusWarning" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Status}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Warning}"/>
+    </Style>
+
+    <Style x:Key="Text.StatusError" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Status}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Error}"/>
+    </Style>
+
+    <Style x:Key="Text.StatusInfo" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Status}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Info}"/>
+    </Style>
+
+    <!-- Compact status for top-right status card -->
+    <Style x:Key="Text.TopStatus" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Warning}"/>
+    </Style>
+
+    <!-- ========================= -->
+    <!-- LOG / TERMINAL -->
+    <!-- ========================= -->
+
+    <Style x:Key="Text.LogBox" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="Background" Value="#0B0F14"/>
+        <Setter Property="BorderBrush" Value="#243140"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="AcceptsReturn" Value="True"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+    </Style>
+
+    <Style x:Key="Text.OperationHistory" TargetType="ListBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="Background" Value="#0B0F14"/>
+        <Setter Property="BorderBrush" Value="#243140"/>
+    </Style>
+
+    <!-- ========================= -->
+    <!-- RESERVED FUTURE STYLES -->
+    <!-- ========================= -->
+
+    <Style x:Key="Text.Badge" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <Style x:Key="Text.ErrorSmall" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Error}"/>
+    </Style>
+
+    <Style x:Key="Text.SuccessSmall" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Success}"/>
+    </Style>
+
+    <Style x:Key="Text.WarningSmall" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Warning}"/>
+    </Style>
+
+    <Style x:Key="Text.MenuItem" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+    </Style>
+
+</ResourceDictionary>
