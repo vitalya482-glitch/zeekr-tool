@@ -59,11 +59,9 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0">
-                    <TextBlock Text="ZEEKR X"
-                               Foreground="White"
-                               FontSize="34"
-                               FontWeight="Bold"
-                               Margin="0,24,0,34"/>
+                        <TextBlock Text="ZEEKR X"
+                                   Style="{StaticResource Text.Logo}"
+                                   Margin="0,24,0,34"/>
 
                     <Button Content="Главная"
                             Style="{StaticResource SidebarButton}"
@@ -138,9 +136,7 @@
             <!-- HEADER WITH GLOBAL STATUS -->
             <Grid Grid.Row="0">
                 <TextBlock Text="Главная панель"
-                           Foreground="White"
-                           FontSize="30"
-                           FontWeight="Bold"
+                           Style="{StaticResource Text.PageTitle}"
                            VerticalAlignment="Center"/>
 
                 <Border HorizontalAlignment="Right"
@@ -251,8 +247,12 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1">
-                        <TextBlock Text="Имя / модель:" Foreground="#7D8793"/>
-                        <TextBlock Name="DeviceModelText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,18"/>
+<TextBlock Text="Имя / модель:"
+           Style="{StaticResource Text.Label}"/>
+<TextBlock Name="DeviceModelText"
+           Text="—"
+           Style="{StaticResource Text.Value}"
+           Margin="0,8,0,18"/>
 
                         <TextBlock Text="Бренд:" Foreground="#7D8793"/>
                         <TextBlock Name="BrandText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,18"/>
@@ -305,9 +305,7 @@
 
                         <Grid Grid.Row="0">
                             <TextBlock Text="Лог действий"
-                                       Foreground="White"
-                                       FontSize="20"
-                                       FontWeight="Bold"/>
+                                   Style="{StaticResource Text.SectionTitle}"/>
 
                             <Button Content="Очистить лог"
                                     HorizontalAlignment="Right"
@@ -323,15 +321,8 @@
                                    Text="APK не выбран"
                                    Margin="0,16,0,12"/>
 
-                        <TextBox Grid.Row="2"
-                                 Name="LogBox"
-                                 Background="#0B0F14"
-                                 Foreground="#D6DEE8"
-                                 BorderBrush="#243140"
-                                 TextWrapping="Wrap"
-                                 AcceptsReturn="True"
-                                 VerticalScrollBarVisibility="Auto"
-                                 FontFamily="Consolas"/>
+<TextBox Grid.Row="2" Name="LogBox" Style="{StaticResource Text.LogBox}"/>
+
                     </Grid>
                 </Border>
 
@@ -386,11 +377,10 @@
                                    FontWeight="Bold"
                                    Margin="0,0,0,12"/>
 
-                        <ListBox Grid.Row="3"
-                                 Name="OperationHistoryList"
-                                 Background="#0B0F14"
-                                 Foreground="#D6DEE8"
-                                 BorderBrush="#243140"/>
+<ListBox Grid.Row="3"
+         Name="OperationHistoryList"
+         Style="{StaticResource Text.OperationHistory}"/>
+
                     </Grid>
                 </Border>
             </Grid>
