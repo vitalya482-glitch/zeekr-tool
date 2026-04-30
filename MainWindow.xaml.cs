@@ -1,26 +1,57 @@
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Windows;
 using Microsoft.Win32;
+using System;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
+using ZeekrTool.Models;
+using ZeekrTool.Services;
 
 namespace ZeekrTool
 {
+    // ZEEKR_TOOL_MARKER: MAIN_WINDOW_CODE_BEHIND_REBUILD_V2
     public partial class MainWindow : Window
     {
-        private string selectedApk = "";
+        private readonly AdbService _adbService = new AdbService();
+        private readonly ObservableCollection<AdbDevice> _devices = new ObservableCollection<AdbDevice>();
+
+        private string _selectedApk = "";
+        private string _selectedDeviceId = "";
 
         public MainWindow()
         {
             InitializeComponent();
+
+            DeviceComboBox.ItemsSource = _devices;
+
+            SetGlobalStatus("● Ожидание", "Устройство не подключено", Brushes.Goldenrod);
+            SetOperationStatus("✓ Готово", "Ожидание действий", Brushes.LightGreen, 0, false);
+
+            _ = RefreshDevicesAsync();
         }
 
-        private string GetAdbPath()
+        // ZEEKR_TOOL_MARKER: UI_STATUS_HELPERS
+        private void SetGlobalStatus(string title, string subtitle, Brush color)
         {
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            string adbPath = Path.Combine(baseDir, "adb", "adb.exe");
-            return File.Exists(adbPath) ? adbPath : "adb";
+            TopStatusText.Text = title;
+            TopStatusText.Foreground = color;
+            TopStatusSubText.Text = subtitle;
+        }
+
+        private void SetOperationStatus(string title, string subtitle, Brush color, int progress, bool indeterminate)
+        {
+            OperationStatusText.Text = title;
+            OperationStatusText.Foreground = color;
+            OperationSubStatusText.Text = subtitle;
+
+            OperationProgressBar.IsIndeterminate = indeterminate;
+            OperationProgressBar.Value = progress;
+        }
+
+        private void AddHistory(string text)
+        {
+            OperationHistoryList.Items.Insert(0, $"{DateTime.Now:HH:mm:ss}  {text}");
         }
 
         private void Log(string text)
@@ -29,98 +60,143 @@ namespace ZeekrTool
             LogBox.ScrollToEnd();
         }
 
-        private void CheckAdb_Click(object sender, RoutedEventArgs e)
-        {
-            DetectDevice();
-        }
-
-        private void DetectDevice()
-        {
-            Log("Проверка ADB...");
-
-            string devicesOutput = RunCommandWithResult(GetAdbPath(), "devices");
-            Log(devicesOutput.Trim());
-
-            var deviceLine = devicesOutput
-                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                .Skip(1)
-                .FirstOrDefault(line => line.Trim().EndsWith("device"));
-
-            if (deviceLine == null)
-            {
-                SetDeviceDisconnected("Устройство не найдено");
-                return;
-            }
-
-            string deviceId = deviceLine.Split('\t')[0].Trim();
-            string connectionType = deviceId.Contains(":5555") ? "Wi-Fi ADB" : "USB ADB";
-
-            string model = GetProp("ro.product.model");
-            string brand = GetProp("ro.product.brand");
-            string manufacturer = GetProp("ro.product.manufacturer");
-            string device = GetProp("ro.product.device");
-            string hardware = GetProp("ro.hardware");
-
-            string android = GetProp("ro.build.version.release");
-            string sdk = GetProp("ro.build.version.sdk");
-            string build = GetProp("ro.build.display.id");
-
-            string abi = GetProp("ro.product.cpu.abi");
-            string abiList = GetProp("ro.product.cpu.abilist");
-
-            string screen = RunAdbShell("wm size").Trim().Replace("Physical size:", "").Trim();
-            string dpi = RunAdbShell("wm density").Trim().Replace("Physical density:", "").Trim();
-
-            DeviceStatusText.Text = "✓ Устройство подключено";
-            DeviceStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
-
-            DeviceSubStatusText.Text = $"{model} / {connectionType}";
-            DeviceIdText.Text = "ID: " + deviceId;
-            ConnectionTypeText.Text = "Тип подключения: " + connectionType;
-
-            DeviceModelText.Text = string.IsNullOrWhiteSpace(model) ? device : model;
-            BrandText.Text = EmptyDash(brand);
-            ManufacturerText.Text = EmptyDash(manufacturer);
-
-            AndroidVersionText.Text = "Android " + EmptyDash(android);
-            SdkText.Text = EmptyDash(sdk);
-            BuildText.Text = EmptyDash(build);
-
-            CpuAbiText.Text = string.IsNullOrWhiteSpace(abiList) ? EmptyDash(abi) : abiList;
-            ScreenText.Text = $"{EmptyDash(screen)} / DPI {EmptyDash(dpi)}";
-            AdbStatusText.Text = "ADB подключен";
-
-            Log("Устройство найдено:");
-            Log("ID: " + deviceId);
-            Log("Тип подключения: " + connectionType);
-            Log("Модель: " + model);
-            Log("Бренд: " + brand);
-            Log("Производитель: " + manufacturer);
-            Log("Device: " + device);
-            Log("Hardware: " + hardware);
-            Log("Android: " + android);
-            Log("SDK: " + sdk);
-            Log("Build: " + build);
-            Log("CPU ABI: " + abi);
-            Log("ABI list: " + abiList);
-            Log("Экран: " + screen);
-            Log("DPI: " + dpi);
-        }
-
-        private string EmptyDash(string value)
+        private string EmptyDash(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
         }
 
-        private string GetProp(string prop)
+        // ZEEKR_TOOL_MARKER: DEVICE_REFRESH
+        private async void RefreshDevices_Click(object sender, RoutedEventArgs e)
         {
-            return RunAdbShell("getprop " + prop).Trim();
+            await RefreshDevicesAsync();
         }
 
-        private void SetDeviceDisconnected(string reason)
+        private async Task RefreshDevicesAsync()
+        {
+            SetGlobalStatus("● Поиск устройств", "ADB devices...", Brushes.Goldenrod);
+            SetOperationStatus("Поиск устройств...", "Обновление списка ADB", Brushes.Goldenrod, 0, true);
+
+            Log("Обновление списка устройств...");
+
+            _devices.Clear();
+            _selectedDeviceId = "";
+
+            var devices = await _adbService.GetDevicesAsync();
+
+            foreach (var device in devices)
+                _devices.Add(device);
+
+            if (_devices.Count == 0)
+            {
+                DeviceComboBox.SelectedIndex = -1;
+                SetDisconnected("Устройства не найдены");
+                SetOperationStatus("× Нет устройств", "Подключи USB или Wi-Fi ADB", Brushes.OrangeRed, 0, false);
+                AddHistory("Устройства не найдены");
+                return;
+            }
+
+            DeviceComboBox.SelectedIndex = 0;
+
+            SetOperationStatus("✓ Список обновлён", $"Найдено устройств: {_devices.Count}", Brushes.LightGreen, 100, false);
+            AddHistory($"Найдено устройств: {_devices.Count}");
+            Log($"Найдено устройств: {_devices.Count}");
+        }
+
+        private void DeviceComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (DeviceComboBox.SelectedItem is not AdbDevice device)
+                return;
+
+            _selectedDeviceId = device.Id;
+
+            SetGlobalStatus("● Устройство выбрано", device.DisplayName, Brushes.Goldenrod);
+            Log("Выбрано устройство: " + device.DisplayName);
+        }
+
+        // ZEEKR_TOOL_MARKER: DEVICE_CONNECT_AND_INFO
+        private async void Connect_Click(object sender, RoutedEventArgs e)
+        {
+            await ConnectSelectedDeviceAsync();
+        }
+
+        private async Task ConnectSelectedDeviceAsync()
+        {
+            if (string.IsNullOrWhiteSpace(_selectedDeviceId))
+            {
+                await RefreshDevicesAsync();
+                return;
+            }
+
+            SetGlobalStatus("● Подключение...", _selectedDeviceId, Brushes.Goldenrod);
+            SetOperationStatus("Подключение...", "Проверка выбранного устройства", Brushes.Goldenrod, 0, true);
+
+            Log("Проверка выбранного устройства: " + _selectedDeviceId);
+
+            string state = await _adbService.GetStateAsync(_selectedDeviceId);
+
+            if (!state.Contains("device"))
+            {
+                SetDisconnected("Устройство недоступно: " + state);
+                SetOperationStatus("× Ошибка подключения", state, Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка подключения");
+                return;
+            }
+
+            var info = await _adbService.GetDeviceInfoAsync(_selectedDeviceId);
+            ApplyDeviceInfo(info);
+
+            SetGlobalStatus("● Подключено", $"{EmptyDash(info.Model)} / {info.ConnectionType}", Brushes.LightGreen);
+            SetOperationStatus("✓ Готово", "Устройство подключено и готово к работе", Brushes.LightGreen, 100, false);
+            AddHistory("Подключение к устройству");
+
+            LogDeviceInfo(info);
+        }
+
+        private void ApplyDeviceInfo(DeviceInfo info)
+        {
+            DeviceStatusText.Text = "✓ Устройство подключено";
+            DeviceStatusText.Foreground = Brushes.LightGreen;
+
+            DeviceSubStatusText.Text = $"{EmptyDash(info.Model)} / {info.ConnectionType}";
+            DeviceIdText.Text = "ID: " + EmptyDash(info.Id);
+            ConnectionTypeText.Text = "Тип подключения: " + EmptyDash(info.ConnectionType);
+
+            DeviceModelText.Text = EmptyDash(info.Model);
+            BrandText.Text = EmptyDash(info.Brand);
+            ManufacturerText.Text = EmptyDash(info.Manufacturer);
+
+            AndroidVersionText.Text = "Android " + EmptyDash(info.AndroidVersion);
+            SdkText.Text = EmptyDash(info.SdkVersion);
+            BuildText.Text = EmptyDash(info.BuildId);
+
+            CpuAbiText.Text = string.IsNullOrWhiteSpace(info.CpuAbiList) ? EmptyDash(info.CpuAbi) : info.CpuAbiList;
+            ScreenText.Text = $"{EmptyDash(info.ScreenSize)} / DPI {EmptyDash(info.Density)}";
+            AdbStatusText.Text = "ADB подключен";
+        }
+
+        private void LogDeviceInfo(DeviceInfo info)
+        {
+            Log("Устройство найдено:");
+            Log("ID: " + info.Id);
+            Log("Тип подключения: " + info.ConnectionType);
+            Log("Модель: " + info.Model);
+            Log("Бренд: " + info.Brand);
+            Log("Производитель: " + info.Manufacturer);
+            Log("Device: " + info.Device);
+            Log("Hardware: " + info.Hardware);
+            Log("Android: " + info.AndroidVersion);
+            Log("SDK: " + info.SdkVersion);
+            Log("Build: " + info.BuildId);
+            Log("CPU ABI: " + info.CpuAbi);
+            Log("ABI list: " + info.CpuAbiList);
+            Log("Экран: " + info.ScreenSize);
+            Log("DPI: " + info.Density);
+        }
+
+        private void SetDisconnected(string reason)
         {
             DeviceStatusText.Text = "× Устройство не подключено";
-            DeviceStatusText.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            DeviceStatusText.Foreground = Brushes.OrangeRed;
 
             DeviceSubStatusText.Text = reason;
             DeviceIdText.Text = "ID: —";
@@ -138,83 +214,151 @@ namespace ZeekrTool
             ScreenText.Text = "—";
             AdbStatusText.Text = "Нет подключения";
 
+            SetGlobalStatus("● Нет подключения", reason, Brushes.OrangeRed);
             Log(reason);
         }
 
-        private string RunAdbShell(string command)
+        private bool HasSelectedDevice()
         {
-            return RunCommandWithResult(GetAdbPath(), $"shell {command}");
+            if (!string.IsNullOrWhiteSpace(_selectedDeviceId))
+                return true;
+
+            Log("Сначала выбери устройство.");
+            SetOperationStatus("× Нет устройства", "Сначала выбери ADB-устройство", Brushes.OrangeRed, 0, false);
+            return false;
         }
 
+        // ZEEKR_TOOL_MARKER: APK_INSTALL
         private void SelectApk_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog dialog = new OpenFileDialog
+            var dialog = new OpenFileDialog
             {
                 Filter = "APK files (*.apk)|*.apk"
             };
 
             if (dialog.ShowDialog() == true)
             {
-                selectedApk = dialog.FileName;
-                SelectedFileText.Text = "Выбран APK: " + selectedApk;
-                Log("Выбран файл: " + selectedApk);
+                _selectedApk = dialog.FileName;
+                SelectedFileText.Text = "Выбран APK: " + _selectedApk;
+                Log("Выбран APK: " + _selectedApk);
+                AddHistory("Выбран APK");
             }
         }
 
-        private void InstallApk_Click(object sender, RoutedEventArgs e)
+        private async void InstallApk_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(selectedApk))
+            if (!HasSelectedDevice())
+                return;
+
+            if (string.IsNullOrWhiteSpace(_selectedApk))
             {
                 Log("Сначала выбери APK-файл.");
+                SetOperationStatus("× APK не выбран", "Нужно выбрать файл приложения", Brushes.OrangeRed, 0, false);
                 return;
             }
 
-            if (!File.Exists(selectedApk))
+            if (!File.Exists(_selectedApk))
             {
-                Log("Файл не найден.");
+                Log("Файл APK не найден.");
+                SetOperationStatus("× Файл не найден", "APK отсутствует по выбранному пути", Brushes.OrangeRed, 0, false);
                 return;
             }
 
-            Log("Установка APK...");
-            RunCommand(GetAdbPath(), $"install -r \"{selectedApk}\"");
+            SetGlobalStatus("● Установка APK...", Path.GetFileName(_selectedApk), Brushes.Goldenrod);
+            SetOperationStatus("Установка APK...", "Передача и установка приложения", Brushes.Goldenrod, 0, true);
+
+            Log("Установка APK на устройство: " + _selectedDeviceId);
+
+            var result = await _adbService.InstallApkAsync(_selectedDeviceId, _selectedApk);
+
+            Log(result.FullText);
+
+            if (result.FullText.ToLower().Contains("success"))
+            {
+                SetGlobalStatus("● Подключено", "APK установлен", Brushes.LightGreen);
+                SetOperationStatus("✓ APK установлен", Path.GetFileName(_selectedApk), Brushes.LightGreen, 100, false);
+                AddHistory("APK установлен");
+            }
+            else
+            {
+                SetGlobalStatus("● Ошибка", "Ошибка установки APK", Brushes.OrangeRed);
+                SetOperationStatus("× Ошибка установки", "Смотри лог действий", Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка установки APK");
+            }
         }
 
-        private void RunCommand(string file, string args)
+        // ZEEKR_TOOL_MARKER: QUICK_COMMANDS
+        private async void Reboot_Click(object sender, RoutedEventArgs e)
         {
-            string result = RunCommandWithResult(file, args);
+            if (!HasSelectedDevice())
+                return;
 
-            if (!string.IsNullOrWhiteSpace(result))
-                Log(result.Trim());
+            SetOperationStatus("Перезагрузка...", "Команда reboot отправлена", Brushes.Goldenrod, 0, true);
+            var result = await _adbService.RebootAsync(_selectedDeviceId);
+            Log(result.FullText);
+            AddHistory("Перезагрузка устройства");
         }
 
-        private string RunCommandWithResult(string file, string args)
+        private async void RestartAdb_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                var process = new Process();
-                process.StartInfo.FileName = file;
-                process.StartInfo.Arguments = args;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
+            SetOperationStatus("Перезапуск ADB...", "kill-server / start-server", Brushes.Goldenrod, 0, true);
+            var result = await _adbService.RestartServerAsync();
+            Log(result.FullText);
+            SetOperationStatus("✓ ADB перезапущен", "Сервер ADB обновлён", Brushes.LightGreen, 100, false);
+            AddHistory("ADB перезапущен");
 
-                process.Start();
+            await RefreshDevicesAsync();
+        }
 
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
+        private async void LoadApps_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
 
-                process.WaitForExit();
+            SetOperationStatus("Получение приложений...", "pm list packages -3", Brushes.Goldenrod, 0, true);
+            var result = await _adbService.GetThirdPartyPackagesAsync(_selectedDeviceId);
+            Log(result.FullText);
+            SetOperationStatus("✓ Список получен", "Приложения выведены в лог", Brushes.LightGreen, 100, false);
+            AddHistory("Получен список приложений");
+        }
 
-                if (!string.IsNullOrWhiteSpace(error))
-                    return output + Environment.NewLine + "ERROR: " + error;
+        private async void Screenshot_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
 
-                return output;
-            }
-            catch (Exception ex)
-            {
-                return "Ошибка запуска команды: " + ex.Message;
-            }
+            SetOperationStatus("Скриншот...", "Создание снимка экрана", Brushes.Goldenrod, 0, true);
+
+            string remotePath = "/sdcard/zeekrtool_screenshot.png";
+            string localPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "zeekrtool_screenshot.png");
+
+            await _adbService.ShellAsync(_selectedDeviceId, $"screencap -p {remotePath}");
+            var result = await _adbService.RunAsync($"-s {_selectedDeviceId} pull {remotePath} \"{localPath}\"");
+
+            Log(result.FullText);
+            SetOperationStatus("✓ Скриншот готов", localPath, Brushes.LightGreen, 100, false);
+            AddHistory("Скриншот сохранён");
+        }
+
+        private async void OpenActivityLauncher_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            SetOperationStatus("Запуск Activity Launcher...", "Попытка запуска приложения", Brushes.Goldenrod, 0, true);
+
+            var result = await _adbService.RunAsync($"-s {_selectedDeviceId} shell monkey -p de.szalkowski.activitylauncher -c android.intent.category.LAUNCHER 1");
+
+            Log(result.FullText);
+            SetOperationStatus("✓ Команда выполнена", "Проверь экран устройства", Brushes.LightGreen, 100, false);
+            AddHistory("Запуск Activity Launcher");
+        }
+
+        private void ClearLog_Click(object sender, RoutedEventArgs e)
+        {
+            LogBox.Clear();
+            AddHistory("Лог очищен");
+            SetOperationStatus("✓ Лог очищен", "Окно лога пустое", Brushes.LightGreen, 100, false);
         }
     }
 }
