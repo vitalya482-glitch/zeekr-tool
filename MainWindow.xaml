@@ -1,389 +1,423 @@
-<Window x:Class="ZeekrTool.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Zeekr Tool"
-        Height="820"
-        Width="1280"
-        WindowStartupLocation="CenterScreen"
-        Background="#0B0F14">
+using Microsoft.Win32;
+using System;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
+using ZeekrTool.Models;
+using ZeekrTool.Services;
 
-    <!-- ZEEKR_TOOL_MARKER: MAIN_WINDOW_XAML_REBUILD_V2 -->
+namespace ZeekrTool
+{
+    // ZEEKR_TOOL_MARKER: MAIN_WINDOW_CODE_BEHIND_REBUILD_V3_APPS_TABLE
+    public partial class MainWindow : Window
+    {
+        private readonly AdbService _adbService = new AdbService();
 
-    <Window.Resources>
-        <Style x:Key="SidebarButton" TargetType="Button">
-            <Setter Property="Height" Value="46"/>
-            <Setter Property="Background" Value="#17212D"/>
-            <Setter Property="Foreground" Value="#E7EDF5"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
-        </Style>
+        private readonly ObservableCollection<AdbDevice> _devices = new ObservableCollection<AdbDevice>();
+        private readonly ObservableCollection<AppInfo> _apps = new ObservableCollection<AppInfo>();
 
-        <Style x:Key="OrangeButton" TargetType="Button">
-            <Setter Property="Height" Value="42"/>
-            <Setter Property="Background" Value="#FF6A2A"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-        </Style>
+        private string _selectedApk = "";
+        private string _selectedDeviceId = "";
 
-        <Style x:Key="DarkButton" TargetType="Button">
-            <Setter Property="Height" Value="42"/>
-            <Setter Property="Background" Value="#202A36"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
-        </Style>
+        public MainWindow()
+        {
+            InitializeComponent();
 
-        <Style x:Key="CardBorder" TargetType="Border">
-            <Setter Property="Background" Value="#131A22"/>
-            <Setter Property="CornerRadius" Value="18"/>
-            <Setter Property="BorderBrush" Value="#243140"/>
-            <Setter Property="BorderThickness" Value="1"/>
-        </Style>
-    </Window.Resources>
+            DeviceComboBox.ItemsSource = _devices;
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="270"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+            // Если в MainWindow.xaml уже есть таблица приложений:
+            if (AppsDataGrid != null)
+                AppsDataGrid.ItemsSource = _apps;
 
-        <!-- LEFT SIDEBAR -->
-        <Border Grid.Column="0" Background="#101720" Padding="22">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+            SetGlobalStatus("● Ожидание", "Устройство не подключено", Brushes.Goldenrod);
+            SetOperationStatus("✓ Готово", "Ожидание действий", Brushes.LightGreen, 0, false);
 
-                <StackPanel Grid.Row="0">
-                        <TextBlock Text="ZEEKR X"
-                                   Style="{StaticResource Text.Logo}"
-                                   Margin="0,24,0,34"/>
+            _ = RefreshDevicesAsync();
+        }
 
-                    <Button Content="Главная"
-                            Style="{StaticResource SidebarButton}"
-                            Background="#FF6A2A"/>
+        // ZEEKR_TOOL_MARKER: UI_STATUS_HELPERS
+        private void SetGlobalStatus(string title, string subtitle, Brush color)
+        {
+            TopStatusText.Text = title;
+            TopStatusText.Foreground = color;
+            TopStatusSubText.Text = subtitle;
+        }
 
-                    <Button Content="Приложения"
-                            Style="{StaticResource SidebarButton}"
-                            Click="LoadApps_Click"/>
+        private void SetOperationStatus(string title, string subtitle, Brush color, int progress, bool indeterminate)
+        {
+            OperationStatusText.Text = title;
+            OperationStatusText.Foreground = color;
+            OperationSubStatusText.Text = subtitle;
 
-                    <Button Content="Установить APK"
-                            Style="{StaticResource SidebarButton}"
-                            Click="SelectApk_Click"/>
+            OperationProgressBar.IsIndeterminate = indeterminate;
+            OperationProgressBar.Value = progress;
+        }
 
-                    <Button Content="Запуск Activity"
-                            Style="{StaticResource SidebarButton}"
-                            Click="OpenActivityLauncher_Click"/>
+        private void AddHistory(string text)
+        {
+            OperationHistoryList.Items.Insert(0, $"{DateTime.Now:HH:mm:ss}  {text}");
+        }
 
-                    <Button Content="Терминал ADB"
-                            Style="{StaticResource SidebarButton}"/>
+        private void Log(string text)
+        {
+            LogBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}{Environment.NewLine}");
+            LogBox.ScrollToEnd();
+        }
 
-                    <Expander Header="Быстрые команды"
-                              IsExpanded="True"
-                              Foreground="White"
-                              Background="#17212D"
-                              Margin="0,24,0,0"
-                              Padding="10">
-                        <StackPanel Margin="0,12,0,0">
-                            <Button Content="Перезагрузить устройство"
-                                    Style="{StaticResource DarkButton}"
-                                    Click="Reboot_Click"/>
+        private string EmptyDash(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
+        }
 
-                            <Button Content="Сделать скриншот"
-                                    Style="{StaticResource DarkButton}"
-                                    Click="Screenshot_Click"/>
+        // ZEEKR_TOOL_MARKER: SCREEN_NAVIGATION
+        private void ShowHome_Click(object sender, RoutedEventArgs e)
+        {
+            HomePanel.Visibility = Visibility.Visible;
+            AppsPanel.Visibility = Visibility.Collapsed;
+        }
 
-                            <Button Content="Очистить лог"
-                                    Style="{StaticResource DarkButton}"
-                                    Click="ClearLog_Click"/>
+        private async void ShowApps_Click(object sender, RoutedEventArgs e)
+        {
+            HomePanel.Visibility = Visibility.Collapsed;
+            AppsPanel.Visibility = Visibility.Visible;
 
-                            <Button Content="Открыть Activity Launcher"
-                                    Style="{StaticResource DarkButton}"
-                                    Click="OpenActivityLauncher_Click"/>
+            await LoadAppsToTableAsync();
+        }
 
-                            <Button Content="Получить список приложений"
-                                    Style="{StaticResource DarkButton}"
-                                    Click="LoadApps_Click"/>
+        // ZEEKR_TOOL_MARKER: DEVICE_REFRESH
+        private async void RefreshDevices_Click(object sender, RoutedEventArgs e)
+        {
+            await RefreshDevicesAsync();
+        }
 
-                            <Button Content="Перезапустить ADB"
-                                    Style="{StaticResource DarkButton}"
-                                    Click="RestartAdb_Click"/>
-                        </StackPanel>
-                    </Expander>
-                </StackPanel>
+        private async Task RefreshDevicesAsync()
+        {
+            SetGlobalStatus("● Поиск устройств", "ADB devices...", Brushes.Goldenrod);
+            SetOperationStatus("Поиск устройств...", "Обновление списка ADB", Brushes.Goldenrod, 0, true);
 
-                <TextBlock Grid.Row="2"
-                           Text="v1.0.0"
-                           Foreground="#7D8793"
-                           FontSize="13"
-                           Margin="0,20,0,0"/>
-            </Grid>
-        </Border>
+            Log("Обновление списка устройств...");
 
-        <!-- MAIN AREA -->
-        <Grid Grid.Column="1" Margin="30">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="90"/>
-                <RowDefinition Height="90"/>
-                <RowDefinition Height="230"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+            _devices.Clear();
+            _selectedDeviceId = "";
 
-            <!-- HEADER WITH GLOBAL STATUS -->
-            <Grid Grid.Row="0">
-                <TextBlock Text="Главная панель"
-                           Style="{StaticResource Text.PageTitle}"
-                           VerticalAlignment="Center"/>
+            var devices = await _adbService.GetDevicesAsync();
 
-                <Border HorizontalAlignment="Right"
-                        Width="380"
-                        Padding="18"
-                        Style="{StaticResource CardBorder}"
-                        BorderBrush="#286B3A">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="95"/>
-                        </Grid.ColumnDefinitions>
+            foreach (var device in devices)
+                _devices.Add(device);
 
-                        <StackPanel>
-                            <TextBlock Name="TopStatusText"
-                                       Text="● Ожидание"
-                                       Foreground="#FBBF24"
-                                       FontSize="18"
-                                       FontWeight="Bold"/>
+            if (_devices.Count == 0)
+            {
+                DeviceComboBox.SelectedIndex = -1;
+                SetDisconnected("Устройства не найдены");
+                SetOperationStatus("× Нет устройств", "Подключи USB или Wi-Fi ADB", Brushes.OrangeRed, 0, false);
+                AddHistory("Устройства не найдены");
+                return;
+            }
 
-                            <TextBlock Name="TopStatusSubText"
-                                       Text="Устройство не подключено"
-                                       Foreground="#D6DEE8"
-                                       Margin="0,8,0,0"/>
-                        </StackPanel>
+            DeviceComboBox.SelectedIndex = 0;
 
-                        <Button Grid.Column="1"
-                                Content="Детали"
-                                Style="{StaticResource DarkButton}"
-                                Height="42"
-                                Margin="0"/>
-                    </Grid>
-                </Border>
-            </Grid>
+            SetOperationStatus("✓ Список обновлён", $"Найдено устройств: {_devices.Count}", Brushes.LightGreen, 100, false);
+            AddHistory($"Найдено устройств: {_devices.Count}");
+            Log($"Найдено устройств: {_devices.Count}");
+        }
 
-            <!-- DEVICE SELECTOR -->
-            <Border Grid.Row="1"
-                    Style="{StaticResource CardBorder}"
-                    Padding="20"
-                    Margin="0,0,0,18">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="170"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="170"/>
-                        <ColumnDefinition Width="170"/>
-                    </Grid.ColumnDefinitions>
+        private void DeviceComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (DeviceComboBox.SelectedItem is not AdbDevice device)
+                return;
 
-                    <TextBlock Text="ADB-устройство:"
-                               Foreground="#AAB4C0"
-                               VerticalAlignment="Center"
-                               FontWeight="Bold"/>
+            _selectedDeviceId = device.Id;
 
-                    <ComboBox Name="DeviceComboBox"
-                              Grid.Column="1"
-                              Height="40"
-                              DisplayMemberPath="DisplayName"
-                              SelectionChanged="DeviceComboBox_SelectionChanged"/>
+            SetGlobalStatus("● Устройство выбрано", device.DisplayName, Brushes.Goldenrod);
+            Log("Выбрано устройство: " + device.DisplayName);
+        }
 
-                    <Button Grid.Column="2"
-                            Content="Найти устройства"
-                            Style="{StaticResource DarkButton}"
-                            Click="RefreshDevices_Click"
-                            Margin="14,0,0,0"/>
+        // ZEEKR_TOOL_MARKER: DEVICE_CONNECT_AND_INFO
+        private async void Connect_Click(object sender, RoutedEventArgs e)
+        {
+            await ConnectSelectedDeviceAsync();
+        }
 
-                    <Button Grid.Column="3"
-                            Content="Подключить"
-                            Style="{StaticResource OrangeButton}"
-                            Click="Connect_Click"
-                            Margin="14,0,0,0"/>
-                </Grid>
-            </Border>
+        private async Task ConnectSelectedDeviceAsync()
+        {
+            if (string.IsNullOrWhiteSpace(_selectedDeviceId))
+            {
+                await RefreshDevicesAsync();
+                return;
+            }
 
-            <!-- DEVICE INFO CARD -->
-            <Border Grid.Row="2"
-                    Style="{StaticResource CardBorder}"
-                    Padding="24"
-                    Margin="0,0,0,18">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.25*"/>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="1*"/>
-                    </Grid.ColumnDefinitions>
+            SetGlobalStatus("● Подключение...", _selectedDeviceId, Brushes.Goldenrod);
+            SetOperationStatus("Подключение...", "Проверка выбранного устройства", Brushes.Goldenrod, 0, true);
 
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Name="DeviceStatusText"
-                                   Text="× Устройство не подключено"
-                                   Foreground="#FF6A2A"
-                                   FontSize="23"
-                                   FontWeight="Bold"/>
+            Log("Проверка выбранного устройства: " + _selectedDeviceId);
 
-                        <TextBlock Name="DeviceSubStatusText"
-                                   Text="Выбери устройство и нажми «Подключить»"
-                                   Foreground="#AAB4C0"
-                                   Margin="0,16,0,0"/>
+            string state = await _adbService.GetStateAsync(_selectedDeviceId);
 
-                        <TextBlock Name="DeviceIdText"
-                                   Text="ID: —"
-                                   Foreground="#C8D0DA"
-                                   Margin="0,22,0,0"/>
+            if (!state.Contains("device"))
+            {
+                SetDisconnected("Устройство недоступно: " + state);
+                SetOperationStatus("× Ошибка подключения", state, Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка подключения");
+                return;
+            }
 
-                        <TextBlock Name="ConnectionTypeText"
-                                   Text="Тип подключения: —"
-                                   Foreground="#C8D0DA"
-                                   Margin="0,10,0,0"/>
-                    </StackPanel>
+            var info = await _adbService.GetDeviceInfoAsync(_selectedDeviceId);
+            ApplyDeviceInfo(info);
 
-                    <StackPanel Grid.Column="1">
-<TextBlock Text="Имя / модель:"
-           Style="{StaticResource Text.Label}"/>
-<TextBlock Name="DeviceModelText"
-           Text="—"
-           Style="{StaticResource Text.Value}"
-           Margin="0,8,0,18"/>
+            SetGlobalStatus("● Подключено", $"{EmptyDash(info.Model)} / {info.ConnectionType}", Brushes.LightGreen);
+            SetOperationStatus("✓ Готово", "Устройство подключено и готово к работе", Brushes.LightGreen, 100, false);
+            AddHistory("Подключение к устройству");
 
-                        <TextBlock Text="Бренд:" Foreground="#7D8793"/>
-                        <TextBlock Name="BrandText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,18"/>
+            LogDeviceInfo(info);
+        }
 
-                        <TextBlock Text="Производитель:" Foreground="#7D8793"/>
-                        <TextBlock Name="ManufacturerText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,0"/>
-                    </StackPanel>
+        private void ApplyDeviceInfo(DeviceInfo info)
+        {
+            DeviceStatusText.Text = "✓ Устройство подключено";
+            DeviceStatusText.Foreground = Brushes.LightGreen;
 
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Android:" Foreground="#7D8793"/>
-                        <TextBlock Name="AndroidVersionText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,18"/>
+            DeviceSubStatusText.Text = $"{EmptyDash(info.Model)} / {info.ConnectionType}";
+            DeviceIdText.Text = "ID: " + EmptyDash(info.Id);
+            ConnectionTypeText.Text = "Тип подключения: " + EmptyDash(info.ConnectionType);
 
-                        <TextBlock Text="SDK:" Foreground="#7D8793"/>
-                        <TextBlock Name="SdkText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,18"/>
+            DeviceModelText.Text = EmptyDash(info.Model);
+            BrandText.Text = EmptyDash(info.Brand);
+            ManufacturerText.Text = EmptyDash(info.Manufacturer);
 
-                        <TextBlock Text="Build:" Foreground="#7D8793"/>
-                        <TextBlock Name="BuildText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,0"/>
-                    </StackPanel>
+            AndroidVersionText.Text = "Android " + EmptyDash(info.AndroidVersion);
+            SdkText.Text = EmptyDash(info.SdkVersion);
+            BuildText.Text = EmptyDash(info.BuildId);
 
-                    <StackPanel Grid.Column="3">
-                        <TextBlock Text="CPU ABI:" Foreground="#7D8793"/>
-                        <TextBlock Name="CpuAbiText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,18"/>
+            CpuAbiText.Text = string.IsNullOrWhiteSpace(info.CpuAbiList) ? EmptyDash(info.CpuAbi) : info.CpuAbiList;
+            ScreenText.Text = $"{EmptyDash(info.ScreenSize)} / DPI {EmptyDash(info.Density)}";
+            AdbStatusText.Text = "ADB подключен";
+        }
 
-                        <TextBlock Text="Экран:" Foreground="#7D8793"/>
-                        <TextBlock Name="ScreenText" Text="—" Foreground="White" FontWeight="Bold" Margin="0,8,0,18"/>
+        private void LogDeviceInfo(DeviceInfo info)
+        {
+            Log("Устройство найдено:");
+            Log("ID: " + info.Id);
+            Log("Тип подключения: " + info.ConnectionType);
+            Log("Модель: " + info.Model);
+            Log("Бренд: " + info.Brand);
+            Log("Производитель: " + info.Manufacturer);
+            Log("Device: " + info.Device);
+            Log("Hardware: " + info.Hardware);
+            Log("Android: " + info.AndroidVersion);
+            Log("SDK: " + info.SdkVersion);
+            Log("Build: " + info.BuildId);
+            Log("CPU ABI: " + info.CpuAbi);
+            Log("ABI list: " + info.CpuAbiList);
+            Log("Экран: " + info.ScreenSize);
+            Log("DPI: " + info.Density);
+        }
 
-                        <TextBlock Text="Статус:" Foreground="#7D8793"/>
-                        <TextBlock Name="AdbStatusText" Text="Ожидание" Foreground="White" FontWeight="Bold" Margin="0,8,0,0"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+        private void SetDisconnected(string reason)
+        {
+            DeviceStatusText.Text = "× Устройство не подключено";
+            DeviceStatusText.Foreground = Brushes.OrangeRed;
 
-            <!-- LOG + OPERATION STATUS -->
-            <Grid Grid.Row="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2.3*"/>
-                    <ColumnDefinition Width="1*"/>
-                </Grid.ColumnDefinitions>
+            DeviceSubStatusText.Text = reason;
+            DeviceIdText.Text = "ID: —";
+            ConnectionTypeText.Text = "Тип подключения: —";
 
-                <Border Grid.Column="0"
-                        Style="{StaticResource CardBorder}"
-                        Padding="20"
-                        Margin="0,0,18,0">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
+            DeviceModelText.Text = "—";
+            BrandText.Text = "—";
+            ManufacturerText.Text = "—";
 
-                        <Grid Grid.Row="0">
-                            <TextBlock Text="Лог действий"
-                                   Style="{StaticResource Text.SectionTitle}"/>
+            AndroidVersionText.Text = "—";
+            SdkText.Text = "—";
+            BuildText.Text = "—";
 
-                            <Button Content="Очистить лог"
-                                    HorizontalAlignment="Right"
-                                    Width="130"
-                                    Style="{StaticResource DarkButton}"
-                                    Click="ClearLog_Click"
-                                    Margin="0"/>
-                        </Grid>
+            CpuAbiText.Text = "—";
+            ScreenText.Text = "—";
+            AdbStatusText.Text = "Нет подключения";
 
-                        <TextBlock Grid.Row="1"
-                                   Name="SelectedFileText"
-                                   Foreground="#8E99A6"
-                                   Text="APK не выбран"
-                                   Margin="0,16,0,12"/>
+            SetGlobalStatus("● Нет подключения", reason, Brushes.OrangeRed);
+            Log(reason);
+        }
 
-<TextBox Grid.Row="2" Name="LogBox" Style="{StaticResource Text.LogBox}"/>
+        private bool HasSelectedDevice()
+        {
+            if (!string.IsNullOrWhiteSpace(_selectedDeviceId))
+                return true;
 
-                    </Grid>
-                </Border>
+            Log("Сначала выбери устройство.");
+            SetOperationStatus("× Нет устройства", "Сначала выбери ADB-устройство", Brushes.OrangeRed, 0, false);
+            return false;
+        }
 
-                <Border Grid.Column="1"
-                        Style="{StaticResource CardBorder}"
-                        Padding="20">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="135"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
+        // ZEEKR_TOOL_MARKER: APPS_TABLE
+        private async Task LoadAppsToTableAsync()
+        {
+            if (!HasSelectedDevice())
+                return;
 
-                        <TextBlock Text="Статус операции"
-                                   Foreground="White"
-                                   FontSize="20"
-                                   FontWeight="Bold"/>
+            SetOperationStatus("Загрузка приложений...", "Получение списка пользовательских приложений", Brushes.Goldenrod, 0, true);
 
-                        <Border Grid.Row="1"
-                                Background="#0B0F14"
-                                BorderBrush="#243140"
-                                BorderThickness="1"
-                                CornerRadius="12"
-                                Padding="16"
-                                Margin="0,18,0,18">
-                            <StackPanel>
-                                <TextBlock Name="OperationStatusText"
-                                           Text="✓ Готово"
-                                           Foreground="#4ADE80"
-                                           FontSize="18"
-                                           FontWeight="Bold"/>
+            _apps.Clear();
 
-                                <TextBlock Name="OperationSubStatusText"
-                                           Text="Ожидание действий"
-                                           Foreground="#C8D0DA"
-                                           Margin="0,10,0,0"/>
+            var apps = await _adbService.GetUserAppsAsync(_selectedDeviceId);
 
-                                <ProgressBar Name="OperationProgressBar"
-                                             Height="8"
-                                             Margin="0,18,0,0"
-                                             Minimum="0"
-                                             Maximum="100"
-                                             Value="0"/>
-                            </StackPanel>
-                        </Border>
+            foreach (var app in apps)
+                _apps.Add(app);
 
-                        <TextBlock Grid.Row="2"
-                                   Text="История операций"
-                                   Foreground="White"
-                                   FontSize="18"
-                                   FontWeight="Bold"
-                                   Margin="0,0,0,12"/>
+            SetOperationStatus("✓ Приложения загружены", $"Найдено: {_apps.Count}", Brushes.LightGreen, 100, false);
+            AddHistory($"Загружено приложений: {_apps.Count}");
+            Log($"Загружено приложений: {_apps.Count}");
+        }
 
-<ListBox Grid.Row="3"
-         Name="OperationHistoryList"
-         Style="{StaticResource Text.OperationHistory}"/>
+        private async void RefreshApps_Click(object sender, RoutedEventArgs e)
+        {
+            await LoadAppsToTableAsync();
+        }
 
-                    </Grid>
-                </Border>
-            </Grid>
-        </Grid>
-    </Grid>
-</Window>
+        private void AppSearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            // Поиск подключим следующим шагом через CollectionView.
+            // ZEEKR_TOOL_MARKER: APPS_SEARCH_RESERVED
+        }
+
+        // ZEEKR_TOOL_MARKER: APK_INSTALL
+        private void SelectApk_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "APK files (*.apk)|*.apk"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                _selectedApk = dialog.FileName;
+                SelectedFileText.Text = "Выбран APK: " + _selectedApk;
+                Log("Выбран APK: " + _selectedApk);
+                AddHistory("Выбран APK");
+            }
+        }
+
+        private async void InstallApk_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            if (string.IsNullOrWhiteSpace(_selectedApk))
+            {
+                Log("Сначала выбери APK-файл.");
+                SetOperationStatus("× APK не выбран", "Нужно выбрать файл приложения", Brushes.OrangeRed, 0, false);
+                return;
+            }
+
+            if (!File.Exists(_selectedApk))
+            {
+                Log("Файл APK не найден.");
+                SetOperationStatus("× Файл не найден", "APK отсутствует по выбранному пути", Brushes.OrangeRed, 0, false);
+                return;
+            }
+
+            SetGlobalStatus("● Установка APK...", Path.GetFileName(_selectedApk), Brushes.Goldenrod);
+            SetOperationStatus("Установка APK...", "Передача и установка приложения", Brushes.Goldenrod, 0, true);
+
+            Log("Установка APK на устройство: " + _selectedDeviceId);
+
+            var result = await _adbService.InstallApkAsync(_selectedDeviceId, _selectedApk);
+
+            Log(result.FullText);
+
+            if (result.FullText.ToLower().Contains("success"))
+            {
+                SetGlobalStatus("● Подключено", "APK установлен", Brushes.LightGreen);
+                SetOperationStatus("✓ APK установлен", Path.GetFileName(_selectedApk), Brushes.LightGreen, 100, false);
+                AddHistory("APK установлен");
+
+                if (AppsPanel.Visibility == Visibility.Visible)
+                    await LoadAppsToTableAsync();
+            }
+            else
+            {
+                SetGlobalStatus("● Ошибка", "Ошибка установки APK", Brushes.OrangeRed);
+                SetOperationStatus("× Ошибка установки", "Смотри лог действий", Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка установки APK");
+            }
+        }
+
+        // ZEEKR_TOOL_MARKER: QUICK_COMMANDS
+        private async void Reboot_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            SetOperationStatus("Перезагрузка...", "Команда reboot отправлена", Brushes.Goldenrod, 0, true);
+            var result = await _adbService.RebootAsync(_selectedDeviceId);
+            Log(result.FullText);
+            AddHistory("Перезагрузка устройства");
+        }
+
+        private async void RestartAdb_Click(object sender, RoutedEventArgs e)
+        {
+            SetOperationStatus("Перезапуск ADB...", "kill-server / start-server", Brushes.Goldenrod, 0, true);
+
+            var result = await _adbService.RestartServerAsync();
+
+            Log(result.FullText);
+            SetOperationStatus("✓ ADB перезапущен", "Сервер ADB обновлён", Brushes.LightGreen, 100, false);
+            AddHistory("ADB перезапущен");
+
+            await RefreshDevicesAsync();
+        }
+
+        private async void LoadApps_Click(object sender, RoutedEventArgs e)
+        {
+            HomePanel.Visibility = Visibility.Collapsed;
+            AppsPanel.Visibility = Visibility.Visible;
+
+            await LoadAppsToTableAsync();
+        }
+
+        private async void Screenshot_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            SetOperationStatus("Скриншот...", "Создание снимка экрана", Brushes.Goldenrod, 0, true);
+
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string remotePath = $"/sdcard/zeekrtool_screenshot_{timestamp}.png";
+            string localPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                $"zeekrtool_screenshot_{timestamp}.png"
+            );
+
+            await _adbService.ShellAsync(_selectedDeviceId, $"screencap -p {remotePath}");
+            var result = await _adbService.RunAsync($"-s {_selectedDeviceId} pull {remotePath} \"{localPath}\"");
+
+            Log(result.FullText);
+            SetOperationStatus("✓ Скриншот готов", localPath, Brushes.LightGreen, 100, false);
+            AddHistory("Скриншот сохранён");
+        }
+
+        private async void OpenActivityLauncher_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            SetOperationStatus("Запуск Activity Launcher...", "Попытка запуска приложения", Brushes.Goldenrod, 0, true);
+
+            var result = await _adbService.RunAsync(
+                $"-s {_selectedDeviceId} shell monkey -p de.szalkowski.activitylauncher -c android.intent.category.LAUNCHER 1"
+            );
+
+            Log(result.FullText);
+            SetOperationStatus("✓ Команда выполнена", "Проверь экран устройства", Brushes.LightGreen, 100, false);
+            AddHistory("Запуск Activity Launcher");
+        }
+
+        private void ClearLog_Click(object sender, RoutedEventArgs e)
+        {
+            LogBox.Clear();
+            AddHistory("Лог очищен");
+            SetOperationStatus("✓ Лог очищен", "Окно лога пустое", Brushes.LightGreen, 100, false);
+        }
+    }
+}
