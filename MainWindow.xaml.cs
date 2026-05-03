@@ -10,11 +10,13 @@ using ZeekrTool.Services;
 
 namespace ZeekrTool
 {
-    // ZEEKR_TOOL_MARKER: MAIN_WINDOW_CODE_BEHIND_REBUILD_V2
+    // ZEEKR_TOOL_MARKER: MAIN_WINDOW_CODE_BEHIND_REBUILD_V3_APPS_TABLE
     public partial class MainWindow : Window
     {
         private readonly AdbService _adbService = new AdbService();
+
         private readonly ObservableCollection<AdbDevice> _devices = new ObservableCollection<AdbDevice>();
+        private readonly ObservableCollection<AppInfo> _apps = new ObservableCollection<AppInfo>();
 
         private string _selectedApk = "";
         private string _selectedDeviceId = "";
@@ -24,6 +26,10 @@ namespace ZeekrTool
             InitializeComponent();
 
             DeviceComboBox.ItemsSource = _devices;
+
+            // Если в MainWindow.xaml уже есть таблица приложений:
+            if (AppsDataGrid != null)
+                AppsDataGrid.ItemsSource = _apps;
 
             SetGlobalStatus("● Ожидание", "Устройство не подключено", Brushes.Goldenrod);
             SetOperationStatus("✓ Готово", "Ожидание действий", Brushes.LightGreen, 0, false);
@@ -63,6 +69,21 @@ namespace ZeekrTool
         private string EmptyDash(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
+        }
+
+        // ZEEKR_TOOL_MARKER: SCREEN_NAVIGATION
+        private void ShowHome_Click(object sender, RoutedEventArgs e)
+        {
+            HomePanel.Visibility = Visibility.Visible;
+            AppsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private async void ShowApps_Click(object sender, RoutedEventArgs e)
+        {
+            HomePanel.Visibility = Visibility.Collapsed;
+            AppsPanel.Visibility = Visibility.Visible;
+
+            await LoadAppsToTableAsync();
         }
 
         // ZEEKR_TOOL_MARKER: DEVICE_REFRESH
@@ -228,6 +249,37 @@ namespace ZeekrTool
             return false;
         }
 
+        // ZEEKR_TOOL_MARKER: APPS_TABLE
+        private async Task LoadAppsToTableAsync()
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            SetOperationStatus("Загрузка приложений...", "Получение списка пользовательских приложений", Brushes.Goldenrod, 0, true);
+
+            _apps.Clear();
+
+            var apps = await _adbService.GetUserAppsAsync(_selectedDeviceId);
+
+            foreach (var app in apps)
+                _apps.Add(app);
+
+            SetOperationStatus("✓ Приложения загружены", $"Найдено: {_apps.Count}", Brushes.LightGreen, 100, false);
+            AddHistory($"Загружено приложений: {_apps.Count}");
+            Log($"Загружено приложений: {_apps.Count}");
+        }
+
+        private async void RefreshApps_Click(object sender, RoutedEventArgs e)
+        {
+            await LoadAppsToTableAsync();
+        }
+
+        private void AppSearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            // Поиск подключим следующим шагом через CollectionView.
+            // ZEEKR_TOOL_MARKER: APPS_SEARCH_RESERVED
+        }
+
         // ZEEKR_TOOL_MARKER: APK_INSTALL
         private void SelectApk_Click(object sender, RoutedEventArgs e)
         {
@@ -278,6 +330,9 @@ namespace ZeekrTool
                 SetGlobalStatus("● Подключено", "APK установлен", Brushes.LightGreen);
                 SetOperationStatus("✓ APK установлен", Path.GetFileName(_selectedApk), Brushes.LightGreen, 100, false);
                 AddHistory("APK установлен");
+
+                if (AppsPanel.Visibility == Visibility.Visible)
+                    await LoadAppsToTableAsync();
             }
             else
             {
@@ -302,7 +357,9 @@ namespace ZeekrTool
         private async void RestartAdb_Click(object sender, RoutedEventArgs e)
         {
             SetOperationStatus("Перезапуск ADB...", "kill-server / start-server", Brushes.Goldenrod, 0, true);
+
             var result = await _adbService.RestartServerAsync();
+
             Log(result.FullText);
             SetOperationStatus("✓ ADB перезапущен", "Сервер ADB обновлён", Brushes.LightGreen, 100, false);
             AddHistory("ADB перезапущен");
@@ -312,14 +369,10 @@ namespace ZeekrTool
 
         private async void LoadApps_Click(object sender, RoutedEventArgs e)
         {
-            if (!HasSelectedDevice())
-                return;
+            HomePanel.Visibility = Visibility.Collapsed;
+            AppsPanel.Visibility = Visibility.Visible;
 
-            SetOperationStatus("Получение приложений...", "pm list packages -3", Brushes.Goldenrod, 0, true);
-            var result = await _adbService.GetThirdPartyPackagesAsync(_selectedDeviceId);
-            Log(result.FullText);
-            SetOperationStatus("✓ Список получен", "Приложения выведены в лог", Brushes.LightGreen, 100, false);
-            AddHistory("Получен список приложений");
+            await LoadAppsToTableAsync();
         }
 
         private async void Screenshot_Click(object sender, RoutedEventArgs e)
@@ -329,8 +382,12 @@ namespace ZeekrTool
 
             SetOperationStatus("Скриншот...", "Создание снимка экрана", Brushes.Goldenrod, 0, true);
 
-            string remotePath = "/sdcard/zeekrtool_screenshot.png";
-            string localPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "zeekrtool_screenshot.png");
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string remotePath = $"/sdcard/zeekrtool_screenshot_{timestamp}.png";
+            string localPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                $"zeekrtool_screenshot_{timestamp}.png"
+            );
 
             await _adbService.ShellAsync(_selectedDeviceId, $"screencap -p {remotePath}");
             var result = await _adbService.RunAsync($"-s {_selectedDeviceId} pull {remotePath} \"{localPath}\"");
@@ -347,7 +404,9 @@ namespace ZeekrTool
 
             SetOperationStatus("Запуск Activity Launcher...", "Попытка запуска приложения", Brushes.Goldenrod, 0, true);
 
-            var result = await _adbService.RunAsync($"-s {_selectedDeviceId} shell monkey -p de.szalkowski.activitylauncher -c android.intent.category.LAUNCHER 1");
+            var result = await _adbService.RunAsync(
+                $"-s {_selectedDeviceId} shell monkey -p de.szalkowski.activitylauncher -c android.intent.category.LAUNCHER 1"
+            );
 
             Log(result.FullText);
             SetOperationStatus("✓ Команда выполнена", "Проверь экран устройства", Brushes.LightGreen, 100, false);
