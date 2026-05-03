@@ -46,7 +46,7 @@
 
         <Style x:Key="DarkComboBox" TargetType="ComboBox">
             <Setter Property="Height" Value="38"/>
-            <Setter Property="Background" Value="#EAF2FA"/>
+            <Setter Property="Background" Value="#0B0F14"/>
             <Setter Property="Foreground" Value="#111827"/>
             <Setter Property="BorderBrush" Value="#506070"/>
             <Setter Property="Padding" Value="8,0"/>
