@@ -27,7 +27,6 @@ namespace ZeekrTool.Services
             try
             {
                 var process = new Process();
-
                 process.StartInfo.FileName = _adbPath;
                 process.StartInfo.Arguments = arguments;
                 process.StartInfo.RedirectStandardOutput = true;
@@ -122,49 +121,6 @@ namespace ZeekrTool.Services
                 CpuAbiList = await GetPropAsync(deviceId, "ro.product.cpu.abilist"),
             };
 
-            // ZEEKR_TOOL_MARKER: ADB_APPS_LIST
-            public async Task<List<AppInfo>> GetUserAppsAsync(string deviceId)
-            {
-                var result = await RunAsync($"-s {deviceId} shell pm list packages -3 -f");
-            
-                var apps = new List<AppInfo>();
-            
-                var lines = result.Output
-                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            
-                foreach (var line in lines)
-                {
-                    // format: package:/data/app/.../base.apk=com.package.name
-                    if (!line.StartsWith("package:"))
-                        continue;
-            
-                    string raw = line.Replace("package:", "").Trim();
-                    string apkPath = "";
-                    string packageName = "";
-            
-                    int splitIndex = raw.LastIndexOf('=');
-            
-                    if (splitIndex > 0)
-                    {
-                        apkPath = raw.Substring(0, splitIndex);
-                        packageName = raw.Substring(splitIndex + 1);
-                    }
-                    else
-                    {
-                        packageName = raw;
-                    }
-            
-                    apps.Add(new AppInfo
-                    {
-                        PackageName = packageName,
-                        ApkPath = apkPath,
-                        Type = "User"
-                    });
-                }
-            
-                return apps.OrderBy(x => x.PackageName).ToList();
-            }
-            
             string size = await ShellAsync(deviceId, "wm size");
             string density = await ShellAsync(deviceId, "wm density");
 
@@ -172,6 +128,47 @@ namespace ZeekrTool.Services
             info.Density = density.Replace("Physical density:", "").Trim();
 
             return info;
+        }
+
+        // ZEEKR_TOOL_MARKER: ADB_APPS_LIST
+        public async Task<List<AppInfo>> GetUserAppsAsync(string deviceId)
+        {
+            var result = await RunAsync($"-s {deviceId} shell pm list packages -3 -f");
+            var apps = new List<AppInfo>();
+
+            var lines = result.Output
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
+            {
+                if (!line.StartsWith("package:"))
+                    continue;
+
+                string raw = line.Replace("package:", "").Trim();
+                string apkPath = "";
+                string packageName = "";
+
+                int splitIndex = raw.LastIndexOf('=');
+
+                if (splitIndex > 0)
+                {
+                    apkPath = raw.Substring(0, splitIndex);
+                    packageName = raw.Substring(splitIndex + 1);
+                }
+                else
+                {
+                    packageName = raw;
+                }
+
+                apps.Add(new AppInfo
+                {
+                    PackageName = packageName,
+                    ApkPath = apkPath,
+                    Type = "User"
+                });
+            }
+
+            return apps.OrderBy(x => x.PackageName).ToList();
         }
 
         public async Task<string> GetPropAsync(string deviceId, string prop)
