@@ -4,19 +4,21 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Media;
 using ZeekrTool.Models;
 using ZeekrTool.Services;
 
 namespace ZeekrTool
 {
-    // ZEEKR_TOOL_MARKER: MAIN_WINDOW_CODE_BEHIND_REBUILD_V3_APPS_TABLE
+    // ZEEKR_TOOL_MARKER: MAIN_WINDOW_CODE_BEHIND_V5_STABLE
     public partial class MainWindow : Window
     {
         private bool _isExiting = false;
         private readonly AdbService _adbService = new AdbService();
         private readonly ObservableCollection<AdbDevice> _devices = new ObservableCollection<AdbDevice>();
         private readonly ObservableCollection<AppInfo> _apps = new ObservableCollection<AppInfo>();
+        private ICollectionView? _appsView;
 
         private string _selectedApk = "";
         private string _selectedDeviceId = "";
@@ -25,12 +27,15 @@ namespace ZeekrTool
         {
             InitializeComponent();
             Closing += MainWindow_Closing;
+
             DeviceComboBox.ItemsSource = _devices;
-            if (AppsDataGrid != null)
-                AppsDataGrid.ItemsSource = _apps;
+            _appsView = CollectionViewSource.GetDefaultView(_apps);
+            AppsDataGrid.ItemsSource = _appsView;
+
             SetGlobalStatus("● Ожидание", "Устройство не подключено", Brushes.Goldenrod);
             SetOperationStatus("✓ Готово", "Ожидание действий", Brushes.LightGreen, 0, false);
-        
+            ShowHome();
+
             _ = RefreshDevicesAsync();
         }
 
@@ -47,7 +52,6 @@ namespace ZeekrTool
             OperationStatusText.Text = title;
             OperationStatusText.Foreground = color;
             OperationSubStatusText.Text = subtitle;
-
             OperationProgressBar.IsIndeterminate = indeterminate;
             OperationProgressBar.Value = progress;
         }
@@ -59,6 +63,9 @@ namespace ZeekrTool
 
         private void Log(string text)
         {
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
             LogBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}{Environment.NewLine}");
             LogBox.ScrollToEnd();
         }
@@ -71,16 +78,27 @@ namespace ZeekrTool
         // ZEEKR_TOOL_MARKER: SCREEN_NAVIGATION
         private void ShowHome_Click(object sender, RoutedEventArgs e)
         {
-            HomePanel.Visibility = Visibility.Visible;
-            AppsPanel.Visibility = Visibility.Collapsed;
+            ShowHome();
         }
 
         private async void ShowApps_Click(object sender, RoutedEventArgs e)
         {
+            ShowApps();
+            await LoadAppsToTableAsync();
+        }
+
+        private void ShowHome()
+        {
+            PageTitleText.Text = "Главная панель";
+            HomePanel.Visibility = Visibility.Visible;
+            AppsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShowApps()
+        {
+            PageTitleText.Text = "Приложения";
             HomePanel.Visibility = Visibility.Collapsed;
             AppsPanel.Visibility = Visibility.Visible;
-
-            await LoadAppsToTableAsync();
         }
 
         // ZEEKR_TOOL_MARKER: DEVICE_REFRESH
@@ -93,7 +111,6 @@ namespace ZeekrTool
         {
             SetGlobalStatus("● Поиск устройств", "ADB devices...", Brushes.Goldenrod);
             SetOperationStatus("Поиск устройств...", "Обновление списка ADB", Brushes.Goldenrod, 0, true);
-
             Log("Обновление списка устройств...");
 
             _devices.Clear();
@@ -114,7 +131,6 @@ namespace ZeekrTool
             }
 
             DeviceComboBox.SelectedIndex = 0;
-
             SetOperationStatus("✓ Список обновлён", $"Найдено устройств: {_devices.Count}", Brushes.LightGreen, 100, false);
             AddHistory($"Найдено устройств: {_devices.Count}");
             Log($"Найдено устройств: {_devices.Count}");
@@ -126,7 +142,6 @@ namespace ZeekrTool
                 return;
 
             _selectedDeviceId = device.Id;
-
             SetGlobalStatus("● Устройство выбрано", device.DisplayName, Brushes.Goldenrod);
             Log("Выбрано устройство: " + device.DisplayName);
         }
@@ -147,7 +162,6 @@ namespace ZeekrTool
 
             SetGlobalStatus("● Подключение...", _selectedDeviceId, Brushes.Goldenrod);
             SetOperationStatus("Подключение...", "Проверка выбранного устройства", Brushes.Goldenrod, 0, true);
-
             Log("Проверка выбранного устройства: " + _selectedDeviceId);
 
             string state = await _adbService.GetStateAsync(_selectedDeviceId);
@@ -162,11 +176,9 @@ namespace ZeekrTool
 
             var info = await _adbService.GetDeviceInfoAsync(_selectedDeviceId);
             ApplyDeviceInfo(info);
-
             SetGlobalStatus("● Подключено", $"{EmptyDash(info.Model)} / {info.ConnectionType}", Brushes.LightGreen);
             SetOperationStatus("✓ Готово", "Устройство подключено и готово к работе", Brushes.LightGreen, 100, false);
             AddHistory("Подключение к устройству");
-
             LogDeviceInfo(info);
         }
 
@@ -174,19 +186,15 @@ namespace ZeekrTool
         {
             DeviceStatusText.Text = "✓ Подключено";
             DeviceStatusText.Foreground = Brushes.LightGreen;
-
             DeviceSubStatusText.Text = $"{EmptyDash(info.Model)} / {info.ConnectionType}";
             DeviceIdText.Text = "ID: " + EmptyDash(info.Id);
             ConnectionTypeText.Text = "Тип подключения: " + EmptyDash(info.ConnectionType);
-
             DeviceModelText.Text = EmptyDash(info.Model);
             BrandText.Text = EmptyDash(info.Brand);
             ManufacturerText.Text = EmptyDash(info.Manufacturer);
-
             AndroidVersionText.Text = "Android " + EmptyDash(info.AndroidVersion);
             SdkText.Text = EmptyDash(info.SdkVersion);
             BuildText.Text = EmptyDash(info.BuildId);
-
             CpuAbiText.Text = string.IsNullOrWhiteSpace(info.CpuAbiList) ? EmptyDash(info.CpuAbi) : info.CpuAbiList;
             ScreenText.Text = $"{EmptyDash(info.ScreenSize)} / DPI {EmptyDash(info.Density)}";
             AdbStatusText.Text = "ADB подключен";
@@ -215,23 +223,18 @@ namespace ZeekrTool
         {
             DeviceStatusText.Text = "× Нет подключения";
             DeviceStatusText.Foreground = Brushes.OrangeRed;
-
             DeviceSubStatusText.Text = reason;
             DeviceIdText.Text = "ID: —";
             ConnectionTypeText.Text = "Тип подключения: —";
-
             DeviceModelText.Text = "—";
             BrandText.Text = "—";
             ManufacturerText.Text = "—";
-
             AndroidVersionText.Text = "—";
             SdkText.Text = "—";
             BuildText.Text = "—";
-
             CpuAbiText.Text = "—";
             ScreenText.Text = "—";
             AdbStatusText.Text = "Нет подключения";
-
             SetGlobalStatus("● Нет подключения", reason, Brushes.OrangeRed);
             Log(reason);
         }
@@ -253,14 +256,13 @@ namespace ZeekrTool
                 return;
 
             SetOperationStatus("Загрузка приложений...", "Получение списка пользовательских приложений", Brushes.Goldenrod, 0, true);
-
             _apps.Clear();
-
             var apps = await _adbService.GetUserAppsAsync(_selectedDeviceId);
 
             foreach (var app in apps)
                 _apps.Add(app);
 
+            ApplyAppsFilter();
             SetOperationStatus("✓ Приложения загружены", $"Найдено: {_apps.Count}", Brushes.LightGreen, 100, false);
             AddHistory($"Загружено приложений: {_apps.Count}");
             Log($"Загружено приложений: {_apps.Count}");
@@ -273,17 +275,34 @@ namespace ZeekrTool
 
         private void AppSearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
-            // Поиск подключим следующим шагом через CollectionView.
-            // ZEEKR_TOOL_MARKER: APPS_SEARCH_RESERVED
+            ApplyAppsFilter();
+        }
+
+        private void ApplyAppsFilter()
+        {
+            if (_appsView == null)
+                return;
+
+            string query = AppSearchBox.Text.Trim().ToLowerInvariant();
+            _appsView.Filter = item =>
+            {
+                if (item is not AppInfo app)
+                    return false;
+
+                if (string.IsNullOrWhiteSpace(query))
+                    return true;
+
+                return app.PackageName.ToLowerInvariant().Contains(query) ||
+                       app.ApkPath.ToLowerInvariant().Contains(query) ||
+                       app.Type.ToLowerInvariant().Contains(query);
+            };
+            _appsView.Refresh();
         }
 
         // ZEEKR_TOOL_MARKER: APK_INSTALL
         private void SelectApk_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "APK files (*.apk)|*.apk"
-            };
+            var dialog = new OpenFileDialog { Filter = "APK files (*.apk)|*.apk" };
 
             if (dialog.ShowDialog() == true)
             {
@@ -315,14 +334,12 @@ namespace ZeekrTool
 
             SetGlobalStatus("● Установка APK...", Path.GetFileName(_selectedApk), Brushes.Goldenrod);
             SetOperationStatus("Установка APK...", "Передача и установка приложения", Brushes.Goldenrod, 0, true);
-
             Log("Установка APK на устройство: " + _selectedDeviceId);
 
             var result = await _adbService.InstallApkAsync(_selectedDeviceId, _selectedApk);
-
             Log(result.FullText);
 
-            if (result.FullText.ToLower().Contains("success"))
+            if (result.FullText.ToLowerInvariant().Contains("success"))
             {
                 SetGlobalStatus("● Подключено", "APK установлен", Brushes.LightGreen);
                 SetOperationStatus("✓ APK установлен", Path.GetFileName(_selectedApk), Brushes.LightGreen, 100, false);
@@ -336,6 +353,118 @@ namespace ZeekrTool
                 SetGlobalStatus("● Ошибка", "Ошибка установки APK", Brushes.OrangeRed);
                 SetOperationStatus("× Ошибка установки", "Смотри лог действий", Brushes.OrangeRed, 0, false);
                 AddHistory("Ошибка установки APK");
+            }
+        }
+
+        // ZEEKR_TOOL_MARKER: APP_TABLE_ACTIONS
+        private AppInfo? GetSelectedApp()
+        {
+            if (AppsDataGrid.SelectedItem is AppInfo app)
+                return app;
+
+            SetOperationStatus("× Приложение не выбрано", "Выбери приложение в таблице", Brushes.OrangeRed, 0, false);
+            Log("Приложение не выбрано.");
+            return null;
+        }
+
+        private async void LaunchSelectedApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+
+            SetOperationStatus("Запуск приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
+            var result = await _adbService.LaunchAppAsync(_selectedDeviceId, app.PackageName);
+            Log(result.FullText);
+            SetOperationStatus("✓ Команда выполнена", app.PackageName, Brushes.LightGreen, 100, false);
+            AddHistory("Запуск: " + app.PackageName);
+        }
+
+        private async void StopSelectedApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+
+            SetOperationStatus("Остановка приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
+            var result = await _adbService.StopAppAsync(_selectedDeviceId, app.PackageName);
+            Log(result.FullText);
+            SetOperationStatus("✓ Приложение остановлено", app.PackageName, Brushes.LightGreen, 100, false);
+            AddHistory("Остановка: " + app.PackageName);
+        }
+
+        private async void UninstallSelectedApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+
+            var confirm = MessageBox.Show(
+                $"Удалить приложение?\n\n{app.PackageName}",
+                "Подтверждение удаления",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes)
+                return;
+
+            SetOperationStatus("Удаление приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
+            var result = await _adbService.UninstallAppAsync(_selectedDeviceId, app.PackageName);
+            Log(result.FullText);
+
+            if (result.FullText.ToLowerInvariant().Contains("success"))
+            {
+                _apps.Remove(app);
+                SetOperationStatus("✓ Приложение удалено", app.PackageName, Brushes.LightGreen, 100, false);
+                AddHistory("Удалено: " + app.PackageName);
+            }
+            else
+            {
+                SetOperationStatus("× Ошибка удаления", "Смотри лог", Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка удаления: " + app.PackageName);
+            }
+        }
+
+        private async void ClearSelectedAppData_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+
+            var confirm = MessageBox.Show(
+                $"Очистить данные приложения?\n\n{app.PackageName}\n\nЭто удалит настройки, кэш и данные приложения.",
+                "Подтверждение очистки данных",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes)
+                return;
+
+            SetOperationStatus("Очистка данных...", app.PackageName, Brushes.Goldenrod, 0, true);
+            var result = await _adbService.ClearAppDataAsync(_selectedDeviceId, app.PackageName);
+            Log(result.FullText);
+
+            if (result.FullText.ToLowerInvariant().Contains("success"))
+            {
+                SetOperationStatus("✓ Данные очищены", app.PackageName, Brushes.LightGreen, 100, false);
+                AddHistory("Очищены данные: " + app.PackageName);
+            }
+            else
+            {
+                SetOperationStatus("× Ошибка очистки", "Смотри лог", Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка очистки: " + app.PackageName);
             }
         }
 
@@ -354,21 +483,16 @@ namespace ZeekrTool
         private async void RestartAdb_Click(object sender, RoutedEventArgs e)
         {
             SetOperationStatus("Перезапуск ADB...", "kill-server / start-server", Brushes.Goldenrod, 0, true);
-
             var result = await _adbService.RestartServerAsync();
-
             Log(result.FullText);
             SetOperationStatus("✓ ADB перезапущен", "Сервер ADB обновлён", Brushes.LightGreen, 100, false);
             AddHistory("ADB перезапущен");
-
             await RefreshDevicesAsync();
         }
 
         private async void LoadApps_Click(object sender, RoutedEventArgs e)
         {
-            HomePanel.Visibility = Visibility.Collapsed;
-            AppsPanel.Visibility = Visibility.Visible;
-
+            ShowApps();
             await LoadAppsToTableAsync();
         }
 
@@ -378,17 +502,12 @@ namespace ZeekrTool
                 return;
 
             SetOperationStatus("Скриншот...", "Создание снимка экрана", Brushes.Goldenrod, 0, true);
-
             string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string remotePath = $"/sdcard/zeekrtool_screenshot_{timestamp}.png";
-            string localPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                $"zeekrtool_screenshot_{timestamp}.png"
-            );
+            string localPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"zeekrtool_screenshot_{timestamp}.png");
 
             await _adbService.ShellAsync(_selectedDeviceId, $"screencap -p {remotePath}");
             var result = await _adbService.RunAsync($"-s {_selectedDeviceId} pull {remotePath} \"{localPath}\"");
-
             Log(result.FullText);
             SetOperationStatus("✓ Скриншот готов", localPath, Brushes.LightGreen, 100, false);
             AddHistory("Скриншот сохранён");
@@ -400,11 +519,7 @@ namespace ZeekrTool
                 return;
 
             SetOperationStatus("Запуск Activity Launcher...", "Попытка запуска приложения", Brushes.Goldenrod, 0, true);
-
-            var result = await _adbService.RunAsync(
-                $"-s {_selectedDeviceId} shell monkey -p de.szalkowski.activitylauncher -c android.intent.category.LAUNCHER 1"
-            );
-
+            var result = await _adbService.RunAsync($"-s {_selectedDeviceId} shell monkey -p de.szalkowski.activitylauncher -c android.intent.category.LAUNCHER 1");
             Log(result.FullText);
             SetOperationStatus("✓ Команда выполнена", "Проверь экран устройства", Brushes.LightGreen, 100, false);
             AddHistory("Запуск Activity Launcher");
@@ -416,154 +531,39 @@ namespace ZeekrTool
             AddHistory("Лог очищен");
             SetOperationStatus("✓ Лог очищен", "Окно лога пустое", Brushes.LightGreen, 100, false);
         }
-                // ZEEKR_TOOL_MARKER: APP_TABLE_ACTIONS
-        private AppInfo? GetSelectedApp()
-        {
-            if (AppsDataGrid.SelectedItem is AppInfo app)
-                return app;
-        
-            SetOperationStatus("× Приложение не выбрано", "Выбери приложение в таблице", Brushes.OrangeRed, 0, false);
-            Log("Приложение не выбрано.");
-            return null;
-        }
-        
-        private async void LaunchSelectedApp_Click(object sender, RoutedEventArgs e)
-        {
-            if (!HasSelectedDevice())
-                return;
-        
-            var app = GetSelectedApp();
-            if (app == null)
-                return;
-        
-            SetOperationStatus("Запуск приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
-        
-            var result = await _adbService.LaunchAppAsync(_selectedDeviceId, app.PackageName);
-        
-            Log(result.FullText);
-            SetOperationStatus("✓ Команда выполнена", app.PackageName, Brushes.LightGreen, 100, false);
-            AddHistory("Запуск: " + app.PackageName);
-        }
-        
-        private async void StopSelectedApp_Click(object sender, RoutedEventArgs e)
-        {
-            if (!HasSelectedDevice())
-                return;
-        
-            var app = GetSelectedApp();
-            if (app == null)
-                return;
-        
-            SetOperationStatus("Остановка приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
-        
-            var result = await _adbService.StopAppAsync(_selectedDeviceId, app.PackageName);
-        
-            Log(result.FullText);
-            SetOperationStatus("✓ Приложение остановлено", app.PackageName, Brushes.LightGreen, 100, false);
-            AddHistory("Остановка: " + app.PackageName);
-        }
-        
-        private async void UninstallSelectedApp_Click(object sender, RoutedEventArgs e)
-        {
-            if (!HasSelectedDevice())
-                return;
-        
-            var app = GetSelectedApp();
-            if (app == null)
-                return;
-        
-            var confirm = MessageBox.Show(
-                $"Удалить приложение?\n\n{app.PackageName}",
-                "Подтверждение удаления",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning
-            );
-        
-            if (confirm != MessageBoxResult.Yes)
-                return;
-        
-            SetOperationStatus("Удаление приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
-        
-            var result = await _adbService.UninstallAppAsync(_selectedDeviceId, app.PackageName);
-        
-            Log(result.FullText);
-        
-            if (result.FullText.ToLower().Contains("success"))
-            {
-                _apps.Remove(app);
-                SetOperationStatus("✓ Приложение удалено", app.PackageName, Brushes.LightGreen, 100, false);
-                AddHistory("Удалено: " + app.PackageName);
-            }
-            else
-            {
-                SetOperationStatus("× Ошибка удаления", "Смотри лог", Brushes.OrangeRed, 0, false);
-                AddHistory("Ошибка удаления: " + app.PackageName);
-            }
-        }
-        
-        private async void ClearSelectedAppData_Click(object sender, RoutedEventArgs e)
-        {
-            if (!HasSelectedDevice())
-                return;
-        
-            var app = GetSelectedApp();
-            if (app == null)
-                return;
-        
-            var confirm = MessageBox.Show(
-                $"Очистить данные приложения?\n\n{app.PackageName}\n\nЭто удалит настройки, кэш и данные приложения.",
-                "Подтверждение очистки данных",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning
-            );
-        
-            if (confirm != MessageBoxResult.Yes)
-                return;
-        
-            SetOperationStatus("Очистка данных...", app.PackageName, Brushes.Goldenrod, 0, true);
-        
-            var result = await _adbService.ClearAppDataAsync(_selectedDeviceId, app.PackageName);
-        
-            Log(result.FullText);
-        
-            if (result.FullText.ToLower().Contains("success"))
-            {
-                SetOperationStatus("✓ Данные очищены", app.PackageName, Brushes.LightGreen, 100, false);
-                            AddHistory("Очищены данные: " + app.PackageName);
-                        }
-                        else
-                        {
-                            SetOperationStatus("× Ошибка очистки", "Смотри лог", Brushes.OrangeRed, 0, false);
-                            AddHistory("Ошибка очистки: " + app.PackageName);
-                        }
-                    }
-        // методы выхода дальше 2 штуки идут
+
         // ZEEKR_TOOL_MARKER: APP_EXIT_CLEANUP
         private async void Exit_Click(object sender, RoutedEventArgs e)
         {
             _isExiting = true;
-        
             SetOperationStatus("Выход...", "Остановка ADB server", Brushes.Goldenrod, 0, true);
-        
+
             try
             {
                 await _adbService.StopServerAsync();
             }
-            catch {}
-        
+            catch
+            {
+                // Ignore exit errors.
+            }
+
             Application.Current.Shutdown();
         }
+
         // ZEEKR_TOOL_MARKER: WINDOW_CLOSE_CLEANUP
         private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             if (_isExiting)
                 return;
-        
+
             try
             {
                 await _adbService.StopServerAsync();
             }
-            catch {}
+            catch
+            {
+                // Ignore close errors.
+            }
         }
     }
 }
