@@ -279,8 +279,10 @@
 
                             <StackPanel Grid.Column="0">
                                 <TextBlock Name="DeviceStatusText"
-                                           Text="× Устройство не подключено"
-                                           Style="{StaticResource Text.StatusError}"/>
+                                           Text="× Нет подключения"
+                                           Style="{StaticResource Text.StatusError}"
+                                           FontSize="20"
+                                           TextWrapping="Wrap"/>
 
                                 <TextBlock Name="DeviceSubStatusText"
                                            Text="Выбери устройство и нажми «Подключить»"
