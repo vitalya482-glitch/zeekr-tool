@@ -24,16 +24,13 @@ namespace ZeekrTool
         public MainWindow()
         {
             InitializeComponent();
-
+            Closing += MainWindow_Closing;
             DeviceComboBox.ItemsSource = _devices;
-
-            // Если в MainWindow.xaml уже есть таблица приложений:
             if (AppsDataGrid != null)
                 AppsDataGrid.ItemsSource = _apps;
-
             SetGlobalStatus("● Ожидание", "Устройство не подключено", Brushes.Goldenrod);
             SetOperationStatus("✓ Готово", "Ожидание действий", Brushes.LightGreen, 0, false);
-
+        
             _ = RefreshDevicesAsync();
         }
 
@@ -422,18 +419,29 @@ namespace ZeekrTool
         // ZEEKR_TOOL_MARKER: APP_EXIT_CLEANUP
         private async void Exit_Click(object sender, RoutedEventArgs e)
         {
+            _isExiting = true;
+        
             SetOperationStatus("Выход...", "Остановка ADB server", Brushes.Goldenrod, 0, true);
         
             try
             {
                 await _adbService.StopServerAsync();
             }
-            catch
-            {
-                // Игнорируем ошибку при выходе
-            }
+            catch {}
         
             Application.Current.Shutdown();
+        }
+        // ZEEKR_TOOL_MARKER: WINDOW_CLOSE_CLEANUP
+        private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (_isExiting)
+                return;
+        
+            try
+            {
+                await _adbService.StopServerAsync();
+            }
+            catch {}
         }
     }
 }
