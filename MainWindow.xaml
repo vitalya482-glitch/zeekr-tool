@@ -197,40 +197,43 @@
                     </Grid>
                 </Border>
             </Grid>
+   <!-- DEVICE SELECTOR -->
+<Border Grid.Row="1"
+        Style="{StaticResource CardBorder}"
+        Padding="18"
+        Margin="0,0,0,16">
 
-            <!-- DEVICE SELECTOR -->
-        <Border Grid.Row="1"
-                Style="{StaticResource CardBorder}"
-                Padding="18"
-                Margin="0,0,0,16">
-        
-            <Grid>
+    <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="160"/>
+            <ColumnDefinition Width="155"/>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="190"/>
-            <ColumnDefinition Width="190"/>
+            <ColumnDefinition Width="180"/>
+            <ColumnDefinition Width="180"/>
         </Grid.ColumnDefinitions>
 
         <TextBlock Text="ADB-устройство:"
                    Style="{StaticResource Text.Value}"
-                   VerticalAlignment="Center"/>
+                   VerticalAlignment="Center"
+                   Margin="0,0,12,0"/>
 
-        <!-- FIXED COMBOBOX -->
         <ComboBox Name="DeviceComboBox"
                   Grid.Column="1"
                   Height="38"
+                  MinWidth="420"
                   Background="White"
                   Foreground="Black"
                   BorderBrush="#506070"
-                  Padding="6"
+                  Padding="8,0"
+                  VerticalContentAlignment="Center"
                   SelectionChanged="DeviceComboBox_SelectionChanged">
 
             <ComboBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding DisplayName}"
                                Foreground="Black"
-                               FontSize="14"/>
+                               FontSize="14"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center"/>
                 </DataTemplate>
             </ComboBox.ItemTemplate>
 
@@ -240,16 +243,17 @@
                 Content="Найти устройства"
                 Style="{StaticResource DarkButton}"
                 Click="RefreshDevices_Click"
-                Margin="14,0,0,0"/>
+                Margin="14,0,0,0"
+                Height="38"/>
 
         <Button Grid.Column="3"
                 Content="Подключить"
                 Style="{StaticResource OrangeButton}"
                 Click="Connect_Click"
-                Margin="14,0,0,0"/>
+                Margin="14,0,0,0"
+                Height="38"/>
     </Grid>
 </Border>
-
             <!-- CONTENT AREA -->
             <Grid Grid.Row="2">
 
