@@ -13,8 +13,8 @@ namespace ZeekrTool
     // ZEEKR_TOOL_MARKER: MAIN_WINDOW_CODE_BEHIND_REBUILD_V3_APPS_TABLE
     public partial class MainWindow : Window
     {
+        private bool _isExiting = false;
         private readonly AdbService _adbService = new AdbService();
-
         private readonly ObservableCollection<AdbDevice> _devices = new ObservableCollection<AdbDevice>();
         private readonly ObservableCollection<AppInfo> _apps = new ObservableCollection<AppInfo>();
 
