@@ -416,6 +416,128 @@ namespace ZeekrTool
             AddHistory("Лог очищен");
             SetOperationStatus("✓ Лог очищен", "Окно лога пустое", Brushes.LightGreen, 100, false);
         }
+                // ZEEKR_TOOL_MARKER: APP_TABLE_ACTIONS
+        private AppInfo? GetSelectedApp()
+        {
+            if (AppsDataGrid.SelectedItem is AppInfo app)
+                return app;
+        
+            SetOperationStatus("× Приложение не выбрано", "Выбери приложение в таблице", Brushes.OrangeRed, 0, false);
+            Log("Приложение не выбрано.");
+            return null;
+        }
+        
+        private async void LaunchSelectedApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+        
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+        
+            SetOperationStatus("Запуск приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
+        
+            var result = await _adbService.LaunchAppAsync(_selectedDeviceId, app.PackageName);
+        
+            Log(result.FullText);
+            SetOperationStatus("✓ Команда выполнена", app.PackageName, Brushes.LightGreen, 100, false);
+            AddHistory("Запуск: " + app.PackageName);
+        }
+        
+        private async void StopSelectedApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+        
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+        
+            SetOperationStatus("Остановка приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
+        
+            var result = await _adbService.StopAppAsync(_selectedDeviceId, app.PackageName);
+        
+            Log(result.FullText);
+            SetOperationStatus("✓ Приложение остановлено", app.PackageName, Brushes.LightGreen, 100, false);
+            AddHistory("Остановка: " + app.PackageName);
+        }
+        
+        private async void UninstallSelectedApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+        
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+        
+            var confirm = MessageBox.Show(
+                $"Удалить приложение?\n\n{app.PackageName}",
+                "Подтверждение удаления",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+        
+            if (confirm != MessageBoxResult.Yes)
+                return;
+        
+            SetOperationStatus("Удаление приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
+        
+            var result = await _adbService.UninstallAppAsync(_selectedDeviceId, app.PackageName);
+        
+            Log(result.FullText);
+        
+            if (result.FullText.ToLower().Contains("success"))
+            {
+                _apps.Remove(app);
+                SetOperationStatus("✓ Приложение удалено", app.PackageName, Brushes.LightGreen, 100, false);
+                AddHistory("Удалено: " + app.PackageName);
+            }
+            else
+            {
+                SetOperationStatus("× Ошибка удаления", "Смотри лог", Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка удаления: " + app.PackageName);
+            }
+        }
+        
+        private async void ClearSelectedAppData_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+        
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+        
+            var confirm = MessageBox.Show(
+                $"Очистить данные приложения?\n\n{app.PackageName}\n\nЭто удалит настройки, кэш и данные приложения.",
+                "Подтверждение очистки данных",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+        
+            if (confirm != MessageBoxResult.Yes)
+                return;
+        
+            SetOperationStatus("Очистка данных...", app.PackageName, Brushes.Goldenrod, 0, true);
+        
+            var result = await _adbService.ClearAppDataAsync(_selectedDeviceId, app.PackageName);
+        
+            Log(result.FullText);
+        
+            if (result.FullText.ToLower().Contains("success"))
+            {
+                SetOperationStatus("✓ Данные очищены", app.PackageName, Brushes.LightGreen, 100, false);
+                            AddHistory("Очищены данные: " + app.PackageName);
+                        }
+                        else
+                        {
+                            SetOperationStatus("× Ошибка очистки", "Смотри лог", Brushes.OrangeRed, 0, false);
+                            AddHistory("Ошибка очистки: " + app.PackageName);
+                        }
+                    }
+        // методы выхода дальше 2 штуки идут
         // ZEEKR_TOOL_MARKER: APP_EXIT_CLEANUP
         private async void Exit_Click(object sender, RoutedEventArgs e)
         {
