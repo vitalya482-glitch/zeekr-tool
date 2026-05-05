@@ -207,5 +207,25 @@ namespace ZeekrTool.Services
         {
             return await RunAsync("kill-server");
         }
+                // ZEEKR_TOOL_MARKER: ADB_APP_ACTIONS
+        public async Task<CommandResult> LaunchAppAsync(string deviceId, string packageName)
+        {
+            return await RunAsync($"-s {deviceId} shell monkey -p {packageName} -c android.intent.category.LAUNCHER 1");
+        }
+        
+        public async Task<CommandResult> StopAppAsync(string deviceId, string packageName)
+        {
+            return await RunAsync($"-s {deviceId} shell am force-stop {packageName}");
+        }
+        
+        public async Task<CommandResult> UninstallAppAsync(string deviceId, string packageName)
+        {
+            return await RunAsync($"-s {deviceId} uninstall {packageName}");
+        }
+        
+        public async Task<CommandResult> ClearAppDataAsync(string deviceId, string packageName)
+        {
+            return await RunAsync($"-s {deviceId} shell pm clear {packageName}");
+        }
     }
 }
