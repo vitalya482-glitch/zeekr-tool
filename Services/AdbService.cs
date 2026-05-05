@@ -202,5 +202,10 @@ namespace ZeekrTool.Services
         {
             return await RunAsync($"-s {deviceId} shell pm list packages -3");
         }
+                    // ZEEKR_TOOL_MARKER: ADB_STOP_SERVER
+        public async Task<CommandResult> StopServerAsync()
+        {
+            return await RunAsync("kill-server");
+        }
     }
 }
