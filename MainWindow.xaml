@@ -267,7 +267,50 @@
     </Grid>
 </Border>
             <!-- CONTENT AREA -->
-            <Grid Grid.Row="2">
+<Grid Grid.Row="2">
+    <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="130"/>
+        <ColumnDefinition Width="130"/>
+        <ColumnDefinition Width="130"/>
+        <ColumnDefinition Width="160"/>
+        <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <Button Grid.Column="0"
+            Content="Запустить"
+            Style="{StaticResource DarkButton}"
+            Click="LaunchSelectedApp_Click"
+            VerticalContentAlignment="Center"
+            Margin="0,0,10,0"/>
+
+    <Button Grid.Column="1"
+            Content="Остановить"
+            Style="{StaticResource DarkButton}"
+            Click="StopSelectedApp_Click"
+            VerticalContentAlignment="Center"
+            Margin="0,0,10,0"/>
+
+    <Button Grid.Column="2"
+            Content="Удалить"
+            Style="{StaticResource DarkButton}"
+            Click="UninstallSelectedApp_Click"
+            VerticalContentAlignment="Center"
+            Margin="0,0,10,0"/>
+
+    <Button Grid.Column="3"
+            Content="Очистить данные"
+            Style="{StaticResource DarkButton}"
+            Click="ClearSelectedAppData_Click"
+            VerticalContentAlignment="Center"
+            Margin="0,0,10,0"/>
+
+    <TextBlock Grid.Column="4"
+               Text="Выбери приложение в таблице и нажми нужное действие"
+               Style="{StaticResource Text.BodyMuted}"
+               TextTrimming="CharacterEllipsis"
+               VerticalAlignment="Center"
+               HorizontalAlignment="Left"/>
+</Grid>
 
                 <!-- HOME SCREEN -->
                 <Grid Name="HomePanel" Visibility="Visible">
