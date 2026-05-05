@@ -419,5 +419,21 @@ namespace ZeekrTool
             AddHistory("Лог очищен");
             SetOperationStatus("✓ Лог очищен", "Окно лога пустое", Brushes.LightGreen, 100, false);
         }
+        // ZEEKR_TOOL_MARKER: APP_EXIT_CLEANUP
+        private async void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            SetOperationStatus("Выход...", "Остановка ADB server", Brushes.Goldenrod, 0, true);
+        
+            try
+            {
+                await _adbService.StopServerAsync();
+            }
+            catch
+            {
+                // Игнорируем ошибку при выходе
+            }
+        
+            Application.Current.Shutdown();
+        }
     }
 }
