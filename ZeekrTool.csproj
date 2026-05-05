@@ -5,6 +5,8 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
+
+    <ApplicationIcon>Assets\Icons\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
