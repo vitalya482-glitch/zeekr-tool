@@ -551,9 +551,12 @@
                                          TextChanged="AppSearchBox_TextChanged"/>
                             </Grid>
 
-                            <DataGrid Name="AppsDataGrid"
-                                      Grid.Row="1"
-                                      Style="{StaticResource DarkDataGrid}">
+                                <DataGrid Name="AppsDataGrid"
+                                          Grid.Row="1"
+                                          Style="{StaticResource DarkDataGrid}"
+                                          RowHeight="34"
+                                          ColumnHeaderHeight="36"
+                                          VerticalContentAlignment="Center">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Package name"
                                                         Binding="{Binding PackageName}"
