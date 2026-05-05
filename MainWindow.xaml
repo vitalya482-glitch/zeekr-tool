@@ -270,12 +270,12 @@
                             Padding="24"
                             Margin="0,0,0,16">
                         <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1.25*"/>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="1*"/>
-                            </Grid.ColumnDefinitions>
+<Grid.ColumnDefinitions>
+    <ColumnDefinition Width="1.65*"/>
+    <ColumnDefinition Width="1.05*"/>
+    <ColumnDefinition Width="1.05*"/>
+    <ColumnDefinition Width="1.05*"/>
+</Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
                                 <TextBlock Name="DeviceStatusText"
