@@ -8,7 +8,7 @@ using ZeekrTool.Models;
 
 namespace ZeekrTool.Services
 {
-    // ZEEKR_TOOL_MARKER: SERVICE_ADB_CORE
+    // ZEEKR_TOOL_MARKER: SERVICE_ADB_CORE_V5
     public class AdbService
     {
         private readonly string _adbPath;
@@ -59,6 +59,7 @@ namespace ZeekrTool.Services
             }
         }
 
+        // ZEEKR_TOOL_MARKER: ADB_DEVICE_LIST
         public async Task<List<AdbDevice>> GetDevicesAsync()
         {
             var result = await RunAsync("devices");
@@ -100,25 +101,23 @@ namespace ZeekrTool.Services
             return result.FullText.Trim();
         }
 
+        // ZEEKR_TOOL_MARKER: ADB_DEVICE_INFO
         public async Task<DeviceInfo> GetDeviceInfoAsync(string deviceId)
         {
             var info = new DeviceInfo
             {
                 Id = deviceId,
                 ConnectionType = deviceId.Contains(":") ? "Wi-Fi ADB" : "USB ADB",
-
                 Model = await GetPropAsync(deviceId, "ro.product.model"),
                 Brand = await GetPropAsync(deviceId, "ro.product.brand"),
                 Manufacturer = await GetPropAsync(deviceId, "ro.product.manufacturer"),
                 Device = await GetPropAsync(deviceId, "ro.product.device"),
                 Hardware = await GetPropAsync(deviceId, "ro.hardware"),
-
                 AndroidVersion = await GetPropAsync(deviceId, "ro.build.version.release"),
                 SdkVersion = await GetPropAsync(deviceId, "ro.build.version.sdk"),
                 BuildId = await GetPropAsync(deviceId, "ro.build.display.id"),
-
                 CpuAbi = await GetPropAsync(deviceId, "ro.product.cpu.abi"),
-                CpuAbiList = await GetPropAsync(deviceId, "ro.product.cpu.abilist"),
+                CpuAbiList = await GetPropAsync(deviceId, "ro.product.cpu.abilist")
             };
 
             string size = await ShellAsync(deviceId, "wm size");
@@ -147,7 +146,6 @@ namespace ZeekrTool.Services
                 string raw = line.Replace("package:", "").Trim();
                 string apkPath = "";
                 string packageName = "";
-
                 int splitIndex = raw.LastIndexOf('=');
 
                 if (splitIndex > 0)
@@ -198,31 +196,32 @@ namespace ZeekrTool.Services
             return await RunAsync("start-server");
         }
 
-        public async Task<CommandResult> GetThirdPartyPackagesAsync(string deviceId)
-        {
-            return await RunAsync($"-s {deviceId} shell pm list packages -3");
-        }
-                    // ZEEKR_TOOL_MARKER: ADB_STOP_SERVER
         public async Task<CommandResult> StopServerAsync()
         {
             return await RunAsync("kill-server");
         }
-                // ZEEKR_TOOL_MARKER: ADB_APP_ACTIONS
+
+        public async Task<CommandResult> GetThirdPartyPackagesAsync(string deviceId)
+        {
+            return await RunAsync($"-s {deviceId} shell pm list packages -3");
+        }
+
+        // ZEEKR_TOOL_MARKER: ADB_APP_ACTIONS
         public async Task<CommandResult> LaunchAppAsync(string deviceId, string packageName)
         {
             return await RunAsync($"-s {deviceId} shell monkey -p {packageName} -c android.intent.category.LAUNCHER 1");
         }
-        
+
         public async Task<CommandResult> StopAppAsync(string deviceId, string packageName)
         {
             return await RunAsync($"-s {deviceId} shell am force-stop {packageName}");
         }
-        
+
         public async Task<CommandResult> UninstallAppAsync(string deviceId, string packageName)
         {
             return await RunAsync($"-s {deviceId} uninstall {packageName}");
         }
-        
+
         public async Task<CommandResult> ClearAppDataAsync(string deviceId, string packageName)
         {
             return await RunAsync($"-s {deviceId} shell pm clear {packageName}");
