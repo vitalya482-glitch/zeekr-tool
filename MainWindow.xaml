@@ -7,7 +7,8 @@
         MinHeight="720"
         MinWidth="1120"
         WindowStartupLocation="CenterScreen"
-        Background="#0B0F14">
+        Background="#0B0F14"
+        Icon="Assets/Icons/app.ico">
 
     <!-- ZEEKR_TOOL_MARKER: MAIN_WINDOW_XAML_V5_RESPONSIVE_APPS -->
 
@@ -212,7 +213,7 @@
         </Border>
 
         <!-- MAIN AREA -->
-        <Grid Grid.Column="1" Margin="24">
+        <Grid Grid.Column="1" Margin="22,18,22,22">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -220,10 +221,10 @@
             </Grid.RowDefinitions>
 
             <!-- HEADER -->
-            <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid Grid.Row="0" Margin="0,0,0,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="360" MinWidth="300"/>
+                    <ColumnDefinition Width="300" MinWidth="260"/>
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="Главная панель"
@@ -231,15 +232,10 @@
                            VerticalAlignment="Center"/>
 
                 <Border Grid.Column="1"
-                        Padding="14"
+                        Padding="12"
                         Style="{StaticResource CardBorder}"
                         BorderBrush="#286B3A">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="90"/>
-                        </Grid.ColumnDefinitions>
-
                         <StackPanel>
                             <TextBlock Name="TopStatusText"
                                        Text="● Ожидание"
@@ -253,10 +249,6 @@
                                        TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
 
-                        <Button Grid.Column="1"
-                                Content="Детали"
-                                Style="{StaticResource DarkButton}"
-                                Margin="0"/>
                     </Grid>
                 </Border>
             </Grid>
@@ -264,8 +256,8 @@
             <!-- DEVICE SELECTOR -->
             <Border Grid.Row="1"
                     Style="{StaticResource CardBorder}"
-                    Padding="14"
-                    Margin="0,0,0,16">
+                    Padding="12"
+                    Margin="0,0,0,12">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="80"/>
@@ -434,7 +426,7 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="*" MinHeight="140"/>
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Text="Статус операции" Style="{StaticResource Text.SectionTitle}"/>
@@ -552,19 +544,23 @@
                     <Border Grid.Row="2" Style="{StaticResource CardBorder}" Padding="12">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="105"/>
+                                <ColumnDefinition Width="115"/>
+                                <ColumnDefinition Width="105"/>
+                                <ColumnDefinition Width="140"/>
                                 <ColumnDefinition Width="130"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="155"/>
+                                <ColumnDefinition Width="160"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <Button Grid.Column="0" Name="LaunchAppButton" Content="Запустить" Style="{StaticResource DarkButton}" Click="LaunchSelectedApp_Click" Margin="0,0,10,0" IsEnabled="True"/>
-                            <Button Grid.Column="1" Name="StopAppButton" Content="Остановить" Style="{StaticResource DarkButton}" Click="StopSelectedApp_Click" Margin="0,0,10,0" IsEnabled="True"/>
-                            <Button Grid.Column="2" Name="UninstallAppButton" Content="Удалить" Style="{StaticResource DarkButton}" Click="UninstallSelectedApp_Click" Margin="0,0,10,0" IsEnabled="True"/>
-                            <Button Grid.Column="3" Name="ClearAppDataButton" Content="Очистить данные" Style="{StaticResource DarkButton}" Click="ClearSelectedAppData_Click" Margin="0,0,10,0" IsEnabled="True"/>
+                            <Button Grid.Column="0" Name="LaunchAppButton" Content="Запустить" Style="{StaticResource DarkButton}" Click="LaunchSelectedApp_Click" Margin="0,0,8,0" IsEnabled="True"/>
+                            <Button Grid.Column="1" Name="StopAppButton" Content="Остановить" Style="{StaticResource DarkButton}" Click="StopSelectedApp_Click" Margin="0,0,8,0" IsEnabled="True"/>
+                            <Button Grid.Column="2" Name="UninstallAppButton" Content="Удалить" Style="{StaticResource DarkButton}" Click="UninstallSelectedApp_Click" Margin="0,0,8,0" IsEnabled="True"/>
+                            <Button Grid.Column="3" Name="ClearAppDataButton" Content="Очистить данные" Style="{StaticResource DarkButton}" Click="ClearSelectedAppData_Click" Margin="0,0,8,0" IsEnabled="True"/>
+                            <Button Grid.Column="4" Name="BackupAppButton" Content="Выгрузить APK" Style="{StaticResource OrangeButton}" Click="BackupSelectedApp_Click" Margin="0,0,8,0" IsEnabled="True"/>
+                            <Button Grid.Column="5" Name="RestoreBackupButton" Content="Установить бэкап" Style="{StaticResource DarkButton}" Click="RestoreBackupApk_Click" Margin="0,0,8,0" IsEnabled="True"/>
 
-                            <TextBlock Grid.Column="4"
+                            <TextBlock Grid.Column="6"
                                        Name="SelectedAppText"
                                        Text="Выбери приложение в таблице и нажми нужное действие"
                                        Style="{StaticResource Text.BodyMuted}"

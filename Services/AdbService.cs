@@ -187,6 +187,12 @@ namespace ZeekrTool.Services
             return await RunAsync($"-s {deviceId} install -r \"{apkPath}\"");
         }
 
+        public async Task<CommandResult> InstallMultipleApksAsync(string deviceId, IEnumerable<string> apkPaths)
+        {
+            string files = string.Join(" ", apkPaths.Select(path => $"\"{path}\""));
+            return await RunAsync($"-s {deviceId} install-multiple -r {files}");
+        }
+
         public async Task<CommandResult> RebootAsync(string deviceId)
         {
             return await RunAsync($"-s {deviceId} reboot");
@@ -201,6 +207,92 @@ namespace ZeekrTool.Services
         public async Task<CommandResult> GetThirdPartyPackagesAsync(string deviceId)
         {
             return await RunAsync($"-s {deviceId} shell pm list packages -3");
+        }
+
+        public async Task<List<string>> GetPackageApkPathsAsync(string deviceId, string packageName)
+        {
+            var result = await RunAsync($"-s {deviceId} shell pm path {packageName}");
+
+            return result.Output
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(line => line.StartsWith("package:", StringComparison.OrdinalIgnoreCase))
+                .Select(line => line.Substring("package:".Length).Trim())
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Distinct()
+                .ToList();
+        }
+
+        public async Task<CommandResult> PullFileAsync(string deviceId, string remotePath, string localPath)
+        {
+            string? directory = Path.GetDirectoryName(localPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+
+            return await RunAsync($"-s {deviceId} pull \"{remotePath}\" \"{localPath}\"");
+        }
+
+        public async Task<string> GetPackageVersionInfoAsync(string deviceId, string packageName)
+        {
+            // grep exists on most Android builds through toybox. If it is unavailable,
+            // adb returns the full error text and the caller saves it in metadata.
+            return await ShellAsync(deviceId, $"dumpsys package {packageName} | grep -E 'versionName|versionCode|firstInstallTime|lastUpdateTime'");
+        }
+
+        public async Task<CommandResult> TryBackupAppDataAsync(string deviceId, string packageName, string localTarPath)
+        {
+            string? directory = Path.GetDirectoryName(localTarPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+
+            try
+            {
+                var process = new Process();
+                process.StartInfo.FileName = _adbPath;
+                process.StartInfo.Arguments = $"-s {deviceId} exec-out run-as {packageName} sh -c \"cd /data/data/{packageName} && tar -cf - .\"";
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = true;
+
+                process.Start();
+
+                await using (var output = File.Create(localTarPath))
+                {
+                    await process.StandardOutput.BaseStream.CopyToAsync(output);
+                }
+
+                string error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                var fileInfo = new FileInfo(localTarPath);
+                if (process.ExitCode != 0 || fileInfo.Length == 0)
+                {
+                    try { File.Delete(localTarPath); } catch { }
+                    return new CommandResult
+                    {
+                        Output = "",
+                        Error = string.IsNullOrWhiteSpace(error) ? "Данные приложения недоступны без root/debuggable-доступа." : error,
+                        ExitCode = process.ExitCode == 0 ? -1 : process.ExitCode
+                    };
+                }
+
+                return new CommandResult
+                {
+                    Output = $"Data backup saved: {localTarPath}",
+                    Error = error,
+                    ExitCode = process.ExitCode
+                };
+            }
+            catch (Exception ex)
+            {
+                try { if (File.Exists(localTarPath)) File.Delete(localTarPath); } catch { }
+                return new CommandResult
+                {
+                    Output = "",
+                    Error = ex.Message,
+                    ExitCode = -1
+                };
+            }
         }
                     // ZEEKR_TOOL_MARKER: ADB_STOP_SERVER
         public async Task<CommandResult> StopServerAsync()

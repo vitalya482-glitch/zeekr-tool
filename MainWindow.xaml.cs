@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -636,6 +637,179 @@ namespace ZeekrTool
                             AddHistory("Ошибка очистки: " + app.PackageName);
                         }
                     }
+
+        private static string SafeFileName(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "unknown";
+
+            foreach (char invalid in Path.GetInvalidFileNameChars())
+                value = value.Replace(invalid, '_');
+
+            return value.Replace(':', '_').Replace('/', '_').Replace('\\', '_').Trim();
+        }
+
+        private static string JsonEscape(string value)
+        {
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n");
+        }
+
+        private async void BackupSelectedApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            var app = GetSelectedApp();
+            if (app == null)
+                return;
+
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string safePackage = SafeFileName(app.PackageName);
+            string backupRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Backups");
+            string backupDir = Path.Combine(backupRoot, safePackage + "_" + timestamp);
+
+            try
+            {
+                Directory.CreateDirectory(backupDir);
+
+                SetOperationStatus("Выгрузка APK...", app.PackageName, Brushes.Goldenrod, 0, true);
+                Log("Начат backup приложения: " + app.PackageName);
+                Log("Папка backup: " + backupDir);
+
+                var apkPaths = await _adbService.GetPackageApkPathsAsync(_selectedDeviceId, app.PackageName);
+                if (apkPaths.Count == 0)
+                {
+                    SetOperationStatus("× APK не найден", app.PackageName, Brushes.OrangeRed, 0, false);
+                    Log("ADB не вернул путь APK для " + app.PackageName);
+                    AddHistory("Ошибка backup APK: " + app.PackageName);
+                    return;
+                }
+
+                var savedApks = new StringBuilder();
+                int index = 0;
+
+                foreach (string remotePath in apkPaths)
+                {
+                    string remoteFileName = Path.GetFileName(remotePath);
+                    if (string.IsNullOrWhiteSpace(remoteFileName) || remoteFileName.Equals("base.apk", StringComparison.OrdinalIgnoreCase))
+                        remoteFileName = index == 0 ? safePackage + ".apk" : safePackage + "_split_" + index + ".apk";
+
+                    string localPath = Path.Combine(backupDir, SafeFileName(remoteFileName));
+                    var pullResult = await _adbService.PullFileAsync(_selectedDeviceId, remotePath, localPath);
+                    Log(pullResult.FullText);
+
+                    if (pullResult.ExitCode == 0 && File.Exists(localPath))
+                    {
+                        savedApks.AppendLine(Path.GetFileName(localPath));
+                    }
+                    else
+                    {
+                        SetOperationStatus("× Ошибка выгрузки APK", remotePath, Brushes.OrangeRed, 0, false);
+                        AddHistory("Ошибка backup APK: " + app.PackageName);
+                        return;
+                    }
+
+                    index++;
+                }
+
+                string versionInfo = await _adbService.GetPackageVersionInfoAsync(_selectedDeviceId, app.PackageName);
+                string metadataPath = Path.Combine(backupDir, "metadata.json");
+                string metadata = "{\n" +
+                                  $"  \"packageName\": \"{JsonEscape(app.PackageName)}\",\n" +
+                                  $"  \"deviceId\": \"{JsonEscape(_selectedDeviceId)}\",\n" +
+                                  $"  \"createdAt\": \"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\",\n" +
+                                  $"  \"sourceApkPath\": \"{JsonEscape(app.ApkPath)}\",\n" +
+                                  $"  \"apkFiles\": \"{JsonEscape(savedApks.ToString().Trim())}\",\n" +
+                                  $"  \"versionInfo\": \"{JsonEscape(versionInfo)}\"\n" +
+                                  "}\n";
+                File.WriteAllText(metadataPath, metadata, Encoding.UTF8);
+
+                string dataTarPath = Path.Combine(backupDir, safePackage + "_data.tar");
+                var dataResult = await _adbService.TryBackupAppDataAsync(_selectedDeviceId, app.PackageName, dataTarPath);
+                if (dataResult.ExitCode == 0)
+                {
+                    Log("Данные приложения сохранены: " + dataTarPath);
+                    AddHistory("Backup APK + data: " + app.PackageName);
+                }
+                else
+                {
+                    Log("Данные приложения не сохранены: " + dataResult.Error.Trim());
+                    Log("Это нормально для обычных приложений без root/debuggable-доступа. APK и metadata сохранены.");
+                    AddHistory("Backup APK: " + app.PackageName);
+                }
+
+                SetOperationStatus("✓ Backup готов", backupDir, Brushes.LightGreen, 100, false);
+                MessageBox.Show(
+                    "Backup готов.\n\nПапка:\n" + backupDir + "\n\nЕсли данные приложения не сохранились — это ограничение Android без root/debuggable-доступа.",
+                    "Backup приложения",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                Log("Ошибка backup: " + ex.Message);
+                SetOperationStatus("× Ошибка backup", ex.Message, Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка backup: " + app.PackageName);
+            }
+        }
+
+        private async void RestoreBackupApk_Click(object sender, RoutedEventArgs e)
+        {
+            if (!HasSelectedDevice())
+                return;
+
+            string backupRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Backups");
+            var dialog = new OpenFileDialog
+            {
+                Title = "Выбери APK из папки Backups",
+                Filter = "APK files (*.apk)|*.apk",
+                InitialDirectory = Directory.Exists(backupRoot) ? backupRoot : AppDomain.CurrentDomain.BaseDirectory
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            SetOperationStatus("Установка backup APK...", Path.GetFileName(dialog.FileName), Brushes.Goldenrod, 0, true);
+            Log("Установка backup APK: " + dialog.FileName);
+
+            string selectedDirectory = Path.GetDirectoryName(dialog.FileName) ?? AppDomain.CurrentDomain.BaseDirectory;
+            var apkFiles = Directory.GetFiles(selectedDirectory, "*.apk").OrderBy(x => x).ToList();
+            CommandResult result;
+
+            if (apkFiles.Count > 1)
+            {
+                Log("В папке backup найдено несколько APK. Использую install-multiple.");
+                foreach (string apk in apkFiles)
+                    Log("APK: " + apk);
+
+                result = await _adbService.InstallMultipleApksAsync(_selectedDeviceId, apkFiles);
+            }
+            else
+            {
+                result = await _adbService.InstallApkAsync(_selectedDeviceId, dialog.FileName);
+            }
+
+            Log(result.FullText);
+
+            if (result.FullText.ToLower().Contains("success"))
+            {
+                SetOperationStatus("✓ Backup APK установлен", Path.GetFileName(dialog.FileName), Brushes.LightGreen, 100, false);
+                AddHistory(apkFiles.Count > 1 ? "Установлен split-backup APK" : "Установлен backup APK");
+
+                if (AppsPanel.Visibility == Visibility.Visible)
+                    await LoadAppsToTableAsync();
+            }
+            else
+            {
+                SetOperationStatus("× Ошибка установки backup", "Смотри лог действий", Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка установки backup APK");
+            }
+        }
+
         // методы выхода дальше 2 штуки идут
         // ZEEKR_TOOL_MARKER: APP_EXIT_CLEANUP
         private async void Exit_Click(object sender, RoutedEventArgs e)
