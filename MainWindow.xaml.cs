@@ -1,9 +1,15 @@
 using Microsoft.Win32;
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using ZeekrTool.Models;
 using ZeekrTool.Services;
@@ -17,6 +23,8 @@ namespace ZeekrTool
         private readonly AdbService _adbService = new AdbService();
         private readonly ObservableCollection<AdbDevice> _devices = new ObservableCollection<AdbDevice>();
         private readonly ObservableCollection<AppInfo> _apps = new ObservableCollection<AppInfo>();
+        private ICollectionView? _appsView;
+        private AppInfo? _selectedApp;
 
         private string _selectedApk = "";
         private string _selectedDeviceId = "";
@@ -27,7 +35,11 @@ namespace ZeekrTool
             Closing += MainWindow_Closing;
             DeviceComboBox.ItemsSource = _devices;
             if (AppsDataGrid != null)
-                AppsDataGrid.ItemsSource = _apps;
+            {
+                _appsView = CollectionViewSource.GetDefaultView(_apps);
+                _appsView.Filter = FilterApps;
+                AppsDataGrid.ItemsSource = _appsView;
+            }
             SetGlobalStatus("● Ожидание", "Устройство не подключено", Brushes.Goldenrod);
             SetOperationStatus("✓ Готово", "Ожидание действий", Brushes.LightGreen, 0, false);
         
@@ -67,6 +79,33 @@ namespace ZeekrTool
         {
             return string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
         }
+
+        private bool FilterApps(object item)
+        {
+            if (item is not AppInfo app)
+                return false;
+
+            string query = AppSearchBox?.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(query))
+                return true;
+
+            return app.PackageName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || app.ApkPath.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || app.Type.Contains(query, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void UpdateSelectedApp(AppInfo? app)
+        {
+            _selectedApp = app;
+
+            if (SelectedAppText == null)
+                return;
+
+            SelectedAppText.Text = app == null
+                ? "Выбери приложение в таблице и нажми нужное действие"
+                : "Выбрано: " + app.PackageName;
+        }
+
 
         // ZEEKR_TOOL_MARKER: SCREEN_NAVIGATION
         private void ShowHome_Click(object sender, RoutedEventArgs e)
@@ -255,11 +294,20 @@ namespace ZeekrTool
             SetOperationStatus("Загрузка приложений...", "Получение списка пользовательских приложений", Brushes.Goldenrod, 0, true);
 
             _apps.Clear();
+            UpdateSelectedApp(null);
 
             var apps = await _adbService.GetUserAppsAsync(_selectedDeviceId);
 
             foreach (var app in apps)
                 _apps.Add(app);
+
+            _appsView?.Refresh();
+            if (_apps.Count > 0)
+            {
+                AppsDataGrid.SelectedIndex = 0;
+                AppsDataGrid.Focus();
+                UpdateSelectedApp(AppsDataGrid.SelectedItem as AppInfo);
+            }
 
             SetOperationStatus("✓ Приложения загружены", $"Найдено: {_apps.Count}", Brushes.LightGreen, 100, false);
             AddHistory($"Загружено приложений: {_apps.Count}");
@@ -271,10 +319,27 @@ namespace ZeekrTool
             await LoadAppsToTableAsync();
         }
 
-        private void AppSearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        private void AppSearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // Поиск подключим следующим шагом через CollectionView.
-            // ZEEKR_TOOL_MARKER: APPS_SEARCH_RESERVED
+            _appsView?.Refresh();
+            UpdateSelectedApp(AppsDataGrid?.SelectedItem as AppInfo);
+        }
+
+        private void AppsDataGrid_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
+        {
+            UpdateSelectedApp(AppsDataGrid.SelectedItem as AppInfo);
+        }
+
+        private async void AppsDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (AppsDataGrid.SelectedItem is AppInfo app && HasSelectedDevice())
+            {
+                SetOperationStatus("Запуск приложения...", app.PackageName, Brushes.Goldenrod, 0, true);
+                var result = await _adbService.LaunchAppAsync(_selectedDeviceId, app.PackageName);
+                Log(result.FullText);
+                SetOperationStatus("✓ Команда выполнена", app.PackageName, Brushes.LightGreen, 100, false);
+                AddHistory("Запуск: " + app.PackageName);
+            }
         }
 
         // ZEEKR_TOOL_MARKER: APK_INSTALL
@@ -410,6 +475,34 @@ namespace ZeekrTool
             AddHistory("Запуск Activity Launcher");
         }
 
+
+        private void OpenAdbTerminal_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string adbPath = _adbService.AdbPath;
+                string adbDirectory = Path.GetDirectoryName(adbPath) ?? AppDomain.CurrentDomain.BaseDirectory;
+                string title = "Zeekr Tool ADB Terminal";
+                string deviceHint = string.IsNullOrWhiteSpace(_selectedDeviceId) ? "" : $" && echo Selected device: {_selectedDeviceId}";
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/K title {title} && cd /d \"{adbDirectory}\" && echo ADB: {adbPath}{deviceHint} && adb devices",
+                    UseShellExecute = true
+                };
+
+                Process.Start(startInfo);
+                SetOperationStatus("✓ Терминал открыт", "Окно cmd запущено с ADB", Brushes.LightGreen, 100, false);
+                AddHistory("Открыт ADB terminal");
+            }
+            catch (Exception ex)
+            {
+                Log("Ошибка открытия ADB terminal: " + ex.Message);
+                SetOperationStatus("× Терминал не открыт", ex.Message, Brushes.OrangeRed, 0, false);
+            }
+        }
+
         private void ClearLog_Click(object sender, RoutedEventArgs e)
         {
             LogBox.Clear();
@@ -420,7 +513,13 @@ namespace ZeekrTool
         private AppInfo? GetSelectedApp()
         {
             if (AppsDataGrid.SelectedItem is AppInfo app)
+            {
+                UpdateSelectedApp(app);
                 return app;
+            }
+
+            if (_selectedApp != null && _apps.Contains(_selectedApp))
+                return _selectedApp;
         
             SetOperationStatus("× Приложение не выбрано", "Выбери приложение в таблице", Brushes.OrangeRed, 0, false);
             Log("Приложение не выбрано.");

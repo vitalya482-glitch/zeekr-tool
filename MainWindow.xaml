@@ -113,6 +113,29 @@
                         <Setter Property="Foreground" Value="#D6DEE8"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
                         <Setter Property="BorderThickness" Value="0"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#FF6A2A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="RowStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1B2633"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#FF6A2A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
                     </Style>
                 </Setter.Value>
             </Setter>
@@ -160,7 +183,8 @@
                                 Click="OpenActivityLauncher_Click"/>
 
                         <Button Content="Терминал ADB"
-                                Style="{StaticResource SidebarButton}"/>
+                                Style="{StaticResource SidebarButton}"
+                                Click="OpenAdbTerminal_Click"/>
 
                         <Expander Header="Быстрые команды"
                                   IsExpanded="True"
@@ -510,7 +534,12 @@
 
                             <DataGrid Name="AppsDataGrid"
                                       Grid.Row="1"
-                                      Style="{StaticResource DarkDataGrid}">
+                                      Style="{StaticResource DarkDataGrid}"
+                                      SelectionMode="Single"
+                                      SelectionUnit="FullRow"
+                                      IsSynchronizedWithCurrentItem="True"
+                                      SelectedCellsChanged="AppsDataGrid_SelectedCellsChanged"
+                                      MouseDoubleClick="AppsDataGrid_MouseDoubleClick">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Package name" Binding="{Binding PackageName}" Width="2*" ElementStyle="{StaticResource DataGridCellText}"/>
                                     <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="100" ElementStyle="{StaticResource DataGridCellText}"/>
@@ -530,12 +559,13 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <Button Grid.Column="0" Content="Запустить" Style="{StaticResource DarkButton}" Click="LaunchSelectedApp_Click" Margin="0,0,10,0"/>
-                            <Button Grid.Column="1" Content="Остановить" Style="{StaticResource DarkButton}" Click="StopSelectedApp_Click" Margin="0,0,10,0"/>
-                            <Button Grid.Column="2" Content="Удалить" Style="{StaticResource DarkButton}" Click="UninstallSelectedApp_Click" Margin="0,0,10,0"/>
-                            <Button Grid.Column="3" Content="Очистить данные" Style="{StaticResource DarkButton}" Click="ClearSelectedAppData_Click" Margin="0,0,10,0"/>
+                            <Button Grid.Column="0" Name="LaunchAppButton" Content="Запустить" Style="{StaticResource DarkButton}" Click="LaunchSelectedApp_Click" Margin="0,0,10,0" IsEnabled="True"/>
+                            <Button Grid.Column="1" Name="StopAppButton" Content="Остановить" Style="{StaticResource DarkButton}" Click="StopSelectedApp_Click" Margin="0,0,10,0" IsEnabled="True"/>
+                            <Button Grid.Column="2" Name="UninstallAppButton" Content="Удалить" Style="{StaticResource DarkButton}" Click="UninstallSelectedApp_Click" Margin="0,0,10,0" IsEnabled="True"/>
+                            <Button Grid.Column="3" Name="ClearAppDataButton" Content="Очистить данные" Style="{StaticResource DarkButton}" Click="ClearSelectedAppData_Click" Margin="0,0,10,0" IsEnabled="True"/>
 
                             <TextBlock Grid.Column="4"
+                                       Name="SelectedAppText"
                                        Text="Выбери приложение в таблице и нажми нужное действие"
                                        Style="{StaticResource Text.BodyMuted}"
                                        TextTrimming="CharacterEllipsis"
