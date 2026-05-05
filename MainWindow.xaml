@@ -633,7 +633,6 @@
                                    Style="{StaticResource Text.BodyMuted}"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"/>
-                    </Grid>
                 </Grid>
             </Grid>
         </Grid>
