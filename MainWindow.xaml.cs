@@ -175,7 +175,7 @@ namespace ZeekrTool
 
         private void ApplyDeviceInfo(DeviceInfo info)
         {
-            DeviceStatusText.Text = "✓ Устройство подключено";
+            DeviceStatusText.Text = "✓ Подключено";
             DeviceStatusText.Foreground = Brushes.LightGreen;
 
             DeviceSubStatusText.Text = $"{EmptyDash(info.Model)} / {info.ConnectionType}";
@@ -216,7 +216,7 @@ namespace ZeekrTool
 
         private void SetDisconnected(string reason)
         {
-            DeviceStatusText.Text = "× Устройство не подключено";
+            DeviceStatusText.Text = "× Нет подключения";
             DeviceStatusText.Foreground = Brushes.OrangeRed;
 
             DeviceSubStatusText.Text = reason;
