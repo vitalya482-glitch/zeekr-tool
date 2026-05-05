@@ -53,19 +53,44 @@
         </Style>
 
         <Style x:Key="DarkDataGrid" TargetType="DataGrid">
-            <Setter Property="Background" Value="#0B0F14"/>
-            <Setter Property="Foreground" Value="#D6DEE8"/>
-            <Setter Property="BorderBrush" Value="#243140"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#243140"/>
-            <Setter Property="RowBackground" Value="#0B0F14"/>
-            <Setter Property="AlternatingRowBackground" Value="#101720"/>
-            <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="CanUserAddRows" Value="False"/>
-            <Setter Property="CanUserDeleteRows" Value="False"/>
-            <Setter Property="IsReadOnly" Value="True"/>
-        </Style>
+    <Setter Property="Background" Value="#0B0F14"/>
+    <Setter Property="Foreground" Value="#D6DEE8"/>
+    <Setter Property="BorderBrush" Value="#243140"/>
+    <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+    <Setter Property="HorizontalGridLinesBrush" Value="#243140"/>
+    <Setter Property="RowBackground" Value="#0B0F14"/>
+    <Setter Property="AlternatingRowBackground" Value="#101720"/>
+    <Setter Property="HeadersVisibility" Value="Column"/>
+    <Setter Property="AutoGenerateColumns" Value="False"/>
+    <Setter Property="CanUserAddRows" Value="False"/>
+    <Setter Property="CanUserDeleteRows" Value="False"/>
+    <Setter Property="IsReadOnly" Value="True"/>
+
+    <Setter Property="ColumnHeaderStyle">
+        <Setter.Value>
+            <Style TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="#202A36"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Padding" Value="10,0"/>
+                <Setter Property="Height" Value="36"/>
+            </Style>
+        </Setter.Value>
+    </Setter>
+
+    <Setter Property="CellStyle">
+        <Setter.Value>
+            <Style TargetType="DataGridCell">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="#D6DEE8"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Padding" Value="10,0"/>
+                <Setter Property="BorderThickness" Value="0"/>
+            </Style>
+        </Setter.Value>
+    </Setter>
+</Style>
     </Window.Resources>
 
     <Grid>
