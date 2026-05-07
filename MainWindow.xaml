@@ -158,10 +158,11 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0"
-                           Text="ZEEKR X"
-                           Style="{StaticResource Text.Logo}"
-                           FontSize="30"
-                           Margin="0,22,0,24"/>
+                Text="Z-TOOL"
+                Style="{StaticResource Text.Logo}"
+                FontSize="28"
+                FontWeight="Bold"
+                Margin="0,14,0,20"/>
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
