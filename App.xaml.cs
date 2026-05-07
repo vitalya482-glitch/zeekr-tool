@@ -38,7 +38,7 @@ namespace ZeekrTool
                 string path = Path.Combine(dir, "crash.log");
                 File.AppendAllText(
                     path,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}{Environment.NewLine}{Environment.NewLine}");
 
 ");
             }
