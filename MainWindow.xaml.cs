@@ -34,6 +34,8 @@ namespace ZeekrTool
         {
             InitializeComponent();
             Closing += MainWindow_Closing;
+            Loaded += MainWindow_Loaded;
+
             DeviceComboBox.ItemsSource = _devices;
             if (AppsDataGrid != null)
             {
@@ -41,10 +43,29 @@ namespace ZeekrTool
                 _appsView.Filter = FilterApps;
                 AppsDataGrid.ItemsSource = _appsView;
             }
+
             SetGlobalStatus("● Ожидание", "Устройство не подключено", Brushes.Goldenrod);
             SetOperationStatus("✓ Готово", "Ожидание действий", Brushes.LightGreen, 0, false);
-        
-            _ = RefreshDevicesAsync();
+            AddHistory("Программа запущена");
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Важно: не запускаем ADB в конструкторе окна.
+            // Сначала показываем интерфейс, потом уже ищем устройства.
+            await Task.Yield();
+
+            try
+            {
+                await RefreshDevicesAsync();
+            }
+            catch (Exception ex)
+            {
+                Log("Ошибка авто-поиска устройств при запуске: " + ex.Message);
+                SetGlobalStatus("● Ожидание", "Нажми Найти для поиска устройства", Brushes.Goldenrod);
+                SetOperationStatus("× Ошибка ADB", "Нажми Найти или проверь adb", Brushes.OrangeRed, 0, false);
+                AddHistory("Ошибка авто-поиска устройств");
+            }
         }
 
         // ZEEKR_TOOL_MARKER: UI_STATUS_HELPERS

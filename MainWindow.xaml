@@ -7,8 +7,7 @@
         MinHeight="720"
         MinWidth="1120"
         WindowStartupLocation="CenterScreen"
-        Background="#0B0F14"
-        Icon="Assets/Icons/app.ico">
+        Background="#0B0F14">
 
     <!-- ZEEKR_TOOL_MARKER: MAIN_WINDOW_XAML_V5_RESPONSIVE_APPS -->
 

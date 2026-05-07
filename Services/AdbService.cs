@@ -24,9 +24,11 @@ namespace ZeekrTool.Services
 
         public async Task<CommandResult> RunAsync(string arguments)
         {
+            const int timeoutMs = 15000;
+
             try
             {
-                var process = new Process();
+                using var process = new Process();
                 process.StartInfo.FileName = _adbPath;
                 process.StartInfo.Arguments = arguments;
                 process.StartInfo.RedirectStandardOutput = true;
@@ -36,10 +38,25 @@ namespace ZeekrTool.Services
 
                 process.Start();
 
-                string output = await process.StandardOutput.ReadToEndAsync();
-                string error = await process.StandardError.ReadToEndAsync();
+                Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+                Task<string> errorTask = process.StandardError.ReadToEndAsync();
+                Task exitTask = process.WaitForExitAsync();
 
-                await process.WaitForExitAsync();
+                Task finished = await Task.WhenAny(exitTask, Task.Delay(timeoutMs));
+                if (finished != exitTask)
+                {
+                    try { process.Kill(entireProcessTree: true); } catch { }
+
+                    return new CommandResult
+                    {
+                        Output = "",
+                        Error = $"ADB command timeout after {timeoutMs / 1000} sec: {arguments}",
+                        ExitCode = -2
+                    };
+                }
+
+                string output = await outputTask;
+                string error = await errorTask;
 
                 return new CommandResult
                 {
