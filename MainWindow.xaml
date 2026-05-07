@@ -212,7 +212,7 @@
         </Border>
 
         <!-- MAIN AREA -->
-        <Grid Grid.Column="1" Margin="22,18,22,22">
+        <Grid Grid.Column="1" Margin="22,18,22,16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -220,43 +220,23 @@
             </Grid.RowDefinitions>
 
             <!-- HEADER -->
-            <Grid Grid.Row="0" Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="300" MinWidth="260"/>
-                </Grid.ColumnDefinitions>
-
+            <Grid Grid.Row="0" Margin="0,0,0,8">
                 <TextBlock Text="Главная панель"
-                           Style="{StaticResource Text.PageTitle}"
-                           VerticalAlignment="Center"/>
+                        Style="{StaticResource Text.PageTitle}"
+                        VerticalAlignment="Center"/>
 
-                <Border Grid.Column="1"
-                        Padding="12"
-                        Style="{StaticResource CardBorder}"
-                        BorderBrush="#286B3A">
-                    <Grid>
-                        <StackPanel>
-                            <TextBlock Name="TopStatusText"
-                                       Text="● Ожидание"
-                                       Style="{StaticResource Text.TopStatus}"
-                                       TextTrimming="CharacterEllipsis"/>
-
-                            <TextBlock Name="TopStatusSubText"
-                                       Text="Устройство не подключено"
-                                       Style="{StaticResource Text.Small}"
-                                       Margin="0,6,0,0"
-                                       TextTrimming="CharacterEllipsis"/>
-                        </StackPanel>
-
-                    </Grid>
-                </Border>
+                <!-- Скрытые элементы оставлены, чтобы не ломать код MainWindow.xaml.cs -->
+                <StackPanel Visibility="Collapsed">
+                    <TextBlock Name="TopStatusText" Text="● Ожидание"/>
+                    <TextBlock Name="TopStatusSubText" Text="Устройство не подключено"/>
+                </StackPanel>
             </Grid>
 
             <!-- DEVICE SELECTOR -->
             <Border Grid.Row="1"
                     Style="{StaticResource CardBorder}"
-                    Padding="12"
-                    Margin="0,0,0,12">
+                    Padding="10"
+                    Margin="0,0,0,10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="80"/>
